@@ -46,10 +46,11 @@ public class FileWatcherService {
         try {
             WatchKey key;
 
-            while ((key = watchService.take()) != null) {
+            while ((key = this.watchService.take()) != null) {
                 for (WatchEvent<?> event: key.pollEvents()) {
                     System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context() + ".");
                 }
+                key.reset();
             }
 
         } catch (InterruptedException e) {
