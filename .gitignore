@@ -1,2 +1,4 @@
 # The Complied Target Files
 target/
+
+.vscode/

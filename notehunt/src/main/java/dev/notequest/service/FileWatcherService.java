@@ -1,6 +1,7 @@
 package dev.notequest.service;
 
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -8,7 +9,6 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.concurrent.TimeUnit;
 
 public class FileWatcherService {
     // Class Variables
@@ -22,13 +22,13 @@ public class FileWatcherService {
         StandardWatchEventKinds.ENTRY_MODIFY
     };
 
-    /*
+    /**
     * FileWatcherService handles all functionality regarding analyzing and tracking file changes within a directory path.
     * This will create and handle any writes to the file state database. 
     *
     * @param directoryPath The directory path actively monitored by FileWatcherService
     * @throws IllegalArgumentException Either no directory path was null or invalid
-    */
+    **/
     public FileWatcherService(String directoryPath) {
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
@@ -36,12 +36,21 @@ public class FileWatcherService {
 
             dirPath.register(watchService, STANDARD_WATCH_EVENT_KINDS);
 
-            
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize WatchService", e);
+        } catch (InvalidPathException e) {
+            throw new RuntimeException(("Invalid path: " + this.dirPath), e);
+        } catch (Exception e) {
+            throw new RuntimeException("An Unexpected Exception Occured: ", e);
         }
     }
     
+    /*
+    * startWatchingDirectory starts a take() on the WatchService within the constructor.
+    * This functions as driver for the FileWatchService and will run indefinitely.
+    *
+    * @throws RuntimeException Thread was interupted or an unexpected error occured
+    */
     public void startWatchingDirectory () {
         try {
             WatchKey key;
@@ -54,7 +63,9 @@ public class FileWatcherService {
             }
 
         } catch (InterruptedException e) {
-            throw new RuntimeException("Thread was interrupted during sleep.");
+            throw new RuntimeException("Thread was interrupted during sleep.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("An Unexpected Exception Occured", e);
         }
     }
 }
