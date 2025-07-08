@@ -11,6 +11,6 @@ public class App
     {
         String path = "C:\\Users\\jacob\\OneDrive\\Documents\\notestesting";
         FileWatcherService fileWatcherService = new FileWatcherService(path);
-        fileWatcherService.startWatchingDirectory();
+        fileWatcherService.run();
     }
 }

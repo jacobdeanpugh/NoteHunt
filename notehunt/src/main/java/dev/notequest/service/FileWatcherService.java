@@ -1,6 +1,7 @@
 package dev.notequest.service;
 
 import java.io.IOException;
+import java.lang.Thread;
 import java.nio.file.InvalidPathException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -13,7 +14,7 @@ import java.nio.file.WatchService;
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
 
-public class FileWatcherService {
+public class FileWatcherService extends Thread{
     // Class Variables
     WatchService watchService;
     Path dirPath;
@@ -54,13 +55,13 @@ public class FileWatcherService {
     *
     * @throws RuntimeException Thread was interupted or an unexpected error occured
     **/
-    public void startWatchingDirectory () {
+    private void startWatchingDirectory () {
         try {
             WatchKey key;
 
             while ((key = this.watchService.take()) != null) {
                 for (WatchEvent<?> event: key.pollEvents()) {
-                    System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context() + ".");
+                    System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context());
                 }
                 key.reset();
             }
@@ -70,5 +71,16 @@ public class FileWatcherService {
         } catch (Exception e) {
             throw new RuntimeException("An Unexpected Exception Occured", e);
         }
+    }
+
+
+    /**
+    * run() overrides the Thread super method and effectively creates a thread for
+    * the FileWatcherService to run
+    *
+    **/
+    @Override
+    public void run() {
+        startWatchingDirectory();
     }
 }
