@@ -10,6 +10,9 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 
+// Adds File Tree Tracking
+import com.sun.nio.file.ExtendedWatchEventModifier;
+
 public class FileWatcherService {
     // Class Variables
     WatchService watchService;
@@ -34,7 +37,7 @@ public class FileWatcherService {
             this.watchService = FileSystems.getDefault().newWatchService();
             this.dirPath = Paths.get(directoryPath);
 
-            dirPath.register(watchService, STANDARD_WATCH_EVENT_KINDS);
+            dirPath.register(watchService, STANDARD_WATCH_EVENT_KINDS, ExtendedWatchEventModifier.FILE_TREE);
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize WatchService", e);
@@ -45,12 +48,12 @@ public class FileWatcherService {
         }
     }
     
-    /*
+    /**
     * startWatchingDirectory starts a take() on the WatchService within the constructor.
     * This functions as driver for the FileWatchService and will run indefinitely.
     *
     * @throws RuntimeException Thread was interupted or an unexpected error occured
-    */
+    **/
     public void startWatchingDirectory () {
         try {
             WatchKey key;
