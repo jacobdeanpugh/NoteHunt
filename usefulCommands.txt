@@ -1,0 +1,5 @@
+// Runs the Jar File After Compliation
+java -cp target/notehunt-1.0-SNAPSHOT.jar dev.notequest.App
+
+// Compiles The Project
+cvm package
