@@ -5,13 +5,17 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchService;
 import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.concurrent.TimeUnit;
 
 class FilesWatcherService {
+    // Class Variables
     WatchService watchService;
     Path dirPath;
 
+    // This final handles what events the WatcherKeys will listen for. DO NOT CHANGE
     public static final WatchEvent.Kind<?>[] STANDARD_WATCH_EVENT_KINDS = {
         StandardWatchEventKinds.ENTRY_CREATE,
         StandardWatchEventKinds.ENTRY_DELETE,
@@ -31,9 +35,25 @@ class FilesWatcherService {
             this.dirPath = Paths.get(directoryPath);
 
             dirPath.register(watchService, STANDARD_WATCH_EVENT_KINDS);
+
+            
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize WatchService", e);
         }
     }
+    
+    public void startWatchingDirectory () {
+        try {
+            WatchKey key;
 
+            while ((key = watchService.take()) != null) {
+                for (WatchEvent<?> event: key.pollEvents()) {
+                    System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context() + ".");
+                }
+            }
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Thread was interrupted during sleep.");
+        }
+    }
 }
