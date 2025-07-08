@@ -10,7 +10,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
 
-class FilesWatcherService {
+public class FileWatcherService {
     // Class Variables
     WatchService watchService;
     Path dirPath;
@@ -29,7 +29,7 @@ class FilesWatcherService {
     * @param directoryPath The directory path actively monitored by FileWatcherService
     * @throws IllegalArgumentException Either no directory path was null or invalid
     */
-    public FilesWatcherService(String directoryPath) {
+    public FileWatcherService(String directoryPath) {
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
             this.dirPath = Paths.get(directoryPath);
