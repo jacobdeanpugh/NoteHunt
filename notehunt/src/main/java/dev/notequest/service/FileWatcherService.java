@@ -81,6 +81,7 @@ public class FileWatcherService extends Thread{
     **/
     @Override
     public void run() {
+        // Starts the primary proccess
         startWatchingDirectory();
     }
 }

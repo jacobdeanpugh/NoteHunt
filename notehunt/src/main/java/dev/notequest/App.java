@@ -1,5 +1,6 @@
 package dev.notequest;
 import dev.notequest.service.FileWatcherService;
+import dev.notequest.doa.DatabaseHandler;
 
 /**
  * Hello world!
@@ -9,8 +10,7 @@ public class App
 {
     public static void main( String[] args )
     {
-        String path = "C:\\Users\\jacob\\OneDrive\\Documents\\notestesting";
-        FileWatcherService fileWatcherService = new FileWatcherService(path);
-        fileWatcherService.run();
+        DatabaseHandler dbHandler = new DatabaseHandler();
+        dbHandler.testDatabaseConnection();
     }
 }
