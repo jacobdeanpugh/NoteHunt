@@ -1,4 +1,7 @@
 # The Complied Target Files
 target/
 
+# The Database 
+data/
+
 .vscode/
