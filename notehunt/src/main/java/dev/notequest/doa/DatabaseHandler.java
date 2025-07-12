@@ -1,7 +1,8 @@
 package dev.notequest.doa;
 
-import java.sql.*;
+import dev.notequest.doa.models.DatabaseQueries;
 
+import java.sql.*;
 import java.io.File;
 
 
@@ -17,10 +18,19 @@ public class DatabaseHandler {
             // Ensures the folder for database exists
             new File("./data").mkdirs();
             this.conn = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PSWD);
+            setupSchema();
         } catch (SQLException e) {
             throw new RuntimeException("Unable to establish connection to databse: ", e);
         } catch (SecurityException e) {
             throw new RuntimeException("Unable to create folder due to permissions", e);
+        }
+    }
+
+    private void setupSchema() {
+        try(Statement stmt = conn.createStatement()) {
+            stmt.execute(DatabaseQueries.SETUP_SCHEMA);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error occured setting up schema", e);
         }
     }
 
