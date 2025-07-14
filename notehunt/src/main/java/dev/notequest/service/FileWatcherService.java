@@ -2,14 +2,10 @@ package dev.notequest.service;
 
 import java.io.IOException;
 import java.lang.Thread;
-import java.nio.file.InvalidPathException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
+import java.util.TreeSet;
+
+import dev.notequest.service.FileTreeCrawler;
 
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
@@ -55,7 +51,7 @@ public class FileWatcherService extends Thread{
     *
     * @throws RuntimeException Thread was interupted or an unexpected error occured
     **/
-    private void startWatchingDirectory () {
+    private void startWatchingDirectory() {
         try {
             WatchKey key;
 
@@ -70,6 +66,19 @@ public class FileWatcherService extends Thread{
             throw new RuntimeException("Thread was interrupted during sleep.", e);
         } catch (Exception e) {
             throw new RuntimeException("An Unexpected Exception Occured", e);
+        }
+    }
+
+    public void getAllDirectoryFiles() {
+        try {
+            FileTreeCrawler fileTreeCrawler = new FileTreeCrawler();
+            
+            Files.walkFileTree(this.dirPath, fileTreeCrawler);
+
+            System.out.println(fileTreeCrawler.getResults());
+
+        } catch (Exception e){
+            throw new RuntimeException("An unexpected error occured.", e);
         }
     }
 
