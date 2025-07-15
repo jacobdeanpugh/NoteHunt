@@ -3,6 +3,8 @@ package dev.notequest.service;
 import java.io.IOException;
 import java.lang.Thread;
 import java.nio.file.*;
+import java.util.ArrayList;
+
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
 
@@ -71,6 +73,23 @@ public class FileWatcherService extends Thread {
             throw new RuntimeException("An unexpected exception occurred during initialization", e);
         }
     }
+
+    private Boolean fileIsInExtensionFilter(String path) {
+        // If no extensions are specified, include all files (no filtering)
+        if (FILE_EXTENSIONS.length < 1) {
+            return true;
+        }
+
+        // Check if the file ends with any of the target extensions
+        for (String ext : FILE_EXTENSIONS) {
+            if (path.toString().endsWith(ext)) {
+                return true;
+            }
+        }
+
+        // File doesn't match any target extension
+        return false;
+    }
     
     /**
      * Main monitoring loop that continuously watches for file system events.
@@ -91,7 +110,8 @@ public class FileWatcherService extends Thread {
                 
                 // Process all pending events for this key
                 for (WatchEvent<?> event : key.pollEvents()) {
-                    System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context());
+                    if (fileIsInExtensionFilter(event.context().toString()))
+                        System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context());
                 }
                 
                 // Reset the key to continue receiving events
