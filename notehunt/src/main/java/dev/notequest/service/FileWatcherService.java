@@ -3,7 +3,6 @@ package dev.notequest.service;
 import java.io.IOException;
 import java.lang.Thread;
 import java.nio.file.*;
-import java.util.ArrayList;
 
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;

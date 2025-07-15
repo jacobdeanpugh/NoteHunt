@@ -1,8 +1,12 @@
-package dev.notequest.doa;
-
-import dev.notequest.doa.models.DatabaseQueries;
+package dev.notequest.handler;
 
 import java.sql.*;
+
+import com.google.common.eventbus.Subscribe;
+
+import dev.notequest.models.DatabaseQueries;
+import dev.notequest.handler.events.FileTreeCrawledEvent;
+
 import java.io.File;
 
 
@@ -40,6 +44,11 @@ public class DatabaseHandler {
         } catch (SQLException e) {
             throw new RuntimeException("Unable to establish connection to databse: ", e);
         }
+    }
+
+    @Subscribe
+    public void handleFileTreeCrawledEvent(FileTreeCrawledEvent event) {
+        System.out.println(event.getFileResults());
     }
 
 }

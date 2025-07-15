@@ -1,11 +1,11 @@
-package dev.notequest.doa.models;
+package dev.notequest.models;
 
 public class DatabaseQueries {
     public final static String SETUP_SCHEMA= """
             CREATE TABLE IF NOT EXISTS file_states (
                 File_Path       VARCHAR(1024) 
                                 NOT NULL,
-                File_Path_Hash  VARCHAR(32)
+                File_Path_Hash  VARCHAR(32) PRIMARY Key 
                                 NOT NULL,
                 Status          VARCHAR(15) 
                                 NOT NULL
@@ -15,7 +15,8 @@ public class DatabaseQueries {
                                     'Complete'
                                 )),
                 Last_Modified   DATETIME 
-                                NOT NULL
+                                NOT NULL,
+                Error_Message   VARCHAR
                 );
             """;
 }

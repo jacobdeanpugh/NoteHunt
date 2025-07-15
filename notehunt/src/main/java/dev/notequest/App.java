@@ -1,6 +1,5 @@
 package dev.notequest;
 import dev.notequest.service.FileWatcherService;
-import dev.notequest.doa.DatabaseHandler;
 import dev.notequest.handler.*;
 
 /**
@@ -11,7 +10,8 @@ public class App
 {
     public static void main( String[] args )
     {
-        EventBusRegistry.bus().register(new EventHandler());
+        DatabaseHandler dbHandler = new DatabaseHandler();
+        EventBusRegistry.bus().register(dbHandler);
 
         new FileWatcherService("C:\\Users\\jacob\\OneDrive\\Documents\\notestesting").run();
     }
