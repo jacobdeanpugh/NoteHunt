@@ -8,6 +8,9 @@ import java.util.ArrayList;
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
 
+import dev.notequest.handler.EventBusRegistry;
+import dev.notequest.handler.events.*;
+
 /**
  * FileWatcherService is a background thread that monitors a directory for file system changes.
  * It tracks file creation, modification, and deletion events across the entire directory tree.
@@ -58,6 +61,7 @@ public class FileWatcherService extends Thread {
      *                         or any other unexpected error occurs during setup
      */
     public FileWatcherService(String directoryPath) {
+        super("file-watcher");
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
             this.dirPath = Paths.get(directoryPath);
@@ -110,8 +114,9 @@ public class FileWatcherService extends Thread {
                 
                 // Process all pending events for this key
                 for (WatchEvent<?> event : key.pollEvents()) {
+                    Path full = dirPath.resolve(event.context().toString());
                     if (fileIsInExtensionFilter(event.context().toString()))
-                        System.out.println("Event Kind: " + event.kind() + ". File Affected: " + event.context());
+                        EventBusRegistry.bus().post(new FileChangeEvent(full, event.kind()));
                 }
                 
                 // Reset the key to continue receiving events
