@@ -5,7 +5,8 @@ import java.sql.*;
 import com.google.common.eventbus.Subscribe;
 
 import dev.notequest.models.DatabaseQueries;
-import dev.notequest.handler.events.FileTreeCrawledEvent;
+import dev.notequest.service.FileTreeCrawler.FileResult;
+import dev.notequest.handler.events.*;
 
 import java.io.File;
 
@@ -22,6 +23,7 @@ public class DatabaseHandler {
             // Ensures the folder for database exists
             new File("./data").mkdirs();
             this.conn = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PSWD);
+            this.conn.setAutoCommit(false);
             setupSchema();
         } catch (SQLException e) {
             throw new RuntimeException("Unable to establish connection to databse: ", e);
@@ -48,7 +50,35 @@ public class DatabaseHandler {
 
     @Subscribe
     public void handleFileTreeCrawledEvent(FileTreeCrawledEvent event) {
-        System.out.println(event.getFileResults());
+        System.out.println("In event");
+        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.UPDATE_CURRENT_FILE_STATUS)) {
+            for (FileResult fr: event.getFileResults()) {
+                Timestamp last_modified_timestamp = new Timestamp(fr.getLastModified().toMillis());
+
+                ps.setString(1, fr.getPath().toString());
+                ps.setString(2, fr.getFilePathHash());
+                ps.setString(3,
+                    fr.getFileStatus() == FileResult.FileStatus.SUCCESS ?
+                    DatabaseQueries.IndexingStatus.PENDING : DatabaseQueries.IndexingStatus.ERROR);
+                ps.setTimestamp(4, last_modified_timestamp);
+                ps.setString(5, fr.getExc().getMessage());
+
+                ps.addBatch();
+            }
+
+            int[] counts = ps.executeBatch();  // sends *all* rows in one go
+            conn.commit();                     
+
+            System.out.println("Upserted " + counts.length + " rows.");
+
+        } catch (SQLException e) {
+            throw new RuntimeException("An unexpected error occured updating current files status", e);
+        }
+    }
+
+    @Subscribe
+    public void handleFileChangeEvent(FileChangeEvent event) {
+        System.out.println(event.getPath());
     }
 
 }

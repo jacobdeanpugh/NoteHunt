@@ -8,6 +8,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import dev.notequest.service.FileTreeCrawler.FileResult.FileStatus;
+import dev.notequest.util.MD5Util;
 
 /**
  * FileTreeCrawler extends SimpleFileVisitor to traverse a file system tree
@@ -50,6 +51,7 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
         }
         
         private Path filePath;          // The absolute or relative path to the file
+        private String filePathHash;
         private FileStatus fileStatus;  // Success or error status of the file visit
         private FileTime lastModified;  // Last modification timestamp (null for error cases)
         private Exception exc;          // Exception details when visitFileFailed is called
@@ -64,6 +66,7 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
          */
         public FileResult(Path filePath, FileStatus fileStatus, FileTime lastModified) {
             this.filePath = filePath;
+            this.filePathHash = MD5Util.md5Hex(filePath.toString());
             this.fileStatus = fileStatus;
             this.lastModified = lastModified;
         }
@@ -78,6 +81,7 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
          */
         public FileResult(Path filePath, FileStatus fileStatus, Exception exc) {
             this.filePath = filePath;
+            this.filePathHash = MD5Util.md5Hex(filePath.toString());
             this.fileStatus = fileStatus;
             this.exc = exc;
         }
@@ -88,6 +92,10 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
          */
         public Path getPath() { 
             return this.filePath; 
+        }
+
+        public String getFilePathHash() {
+            return this.filePathHash;
         }
         
         /**
@@ -111,8 +119,13 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
          * @return Exception object containing error details, or null for successful visits
          */
         public Exception getExc() {
-            return this.exc;
-        }
+            if (this.exc == null) {
+                // e.g. represent “no error” with a harmless exception
+                return new Exception("No exception recorded");
+            }
+        return this.exc;
+}
+
         
         /**
          * Returns a string representation of the FileResult for debugging and logging.
@@ -122,7 +135,7 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
          */
         @Override
         public String toString() {
-            return this.filePath + " " + this.fileStatus + " " + this.lastModified;
+            return this.filePath + " " + this.fileStatus + " " + this.lastModified + " " + this.filePathHash;
         }
     }
 

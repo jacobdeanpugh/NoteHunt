@@ -143,7 +143,7 @@ public class FileWatcherService extends Thread {
         try {
             FileTreeCrawler fileTreeCrawler = new FileTreeCrawler(FILE_EXTENSIONS);
             Files.walkFileTree(this.dirPath, fileTreeCrawler);
-            System.out.println(fileTreeCrawler.getResults());
+            EventBusRegistry.bus().post(new FileTreeCrawledEvent(fileTreeCrawler.getResults()));
         } catch (Exception e) {
             throw new RuntimeException("An unexpected error occurred during file tree crawling", e);
         }

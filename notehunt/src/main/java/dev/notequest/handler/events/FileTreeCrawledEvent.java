@@ -6,7 +6,7 @@ import java.util.ArrayList;
 public class FileTreeCrawledEvent {
     private ArrayList<FileResult> fileResults;
 
-    FileTreeCrawledEvent(ArrayList<FileResult> fileResults) {
+    public FileTreeCrawledEvent(ArrayList<FileResult> fileResults) {
         this.fileResults = fileResults;
     }
 
