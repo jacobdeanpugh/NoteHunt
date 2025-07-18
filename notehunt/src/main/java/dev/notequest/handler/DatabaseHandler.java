@@ -7,6 +7,7 @@ import com.google.common.eventbus.Subscribe;
 import dev.notequest.models.DatabaseQueries;
 import dev.notequest.service.FileResult;
 import dev.notequest.handler.events.*;
+import java.util.ArrayList;
 
 import java.io.File;
 
@@ -50,7 +51,9 @@ public class DatabaseHandler {
 
     @Subscribe
     public void handleFileTreeCrawledEvent(FileTreeCrawledEvent event) {
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.UPDATE_CURRENT_FILE_STATUS)) {
+        System.out.println(getDirectoryFilesDiff(event.getFileResults()));
+
+        /*try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.UPDATE_CURRENT_FILE_STATUS)) {
             for (FileResult fr: event.getFileResults()) {
                 Timestamp last_modified_timestamp = new Timestamp(fr.getLastModified().toMillis());
 
@@ -72,6 +75,33 @@ public class DatabaseHandler {
 
         } catch (SQLException e) {
             throw new RuntimeException("An unexpected error occured updating current files status", e);
+        } */
+    }
+
+    private ArrayList<String> getDirectoryFilesDiff(ArrayList<FileResult> currentDirectoryFiles) {
+        ArrayList<String> diffFilePathHashes = new ArrayList<String>();
+        
+        String[] currentDirectoryFilesPathHashes = new String[currentDirectoryFiles.size()];
+
+        for(int i = 0; i < currentDirectoryFiles.size(); i++) {
+            currentDirectoryFilesPathHashes[i] = currentDirectoryFiles.get(i).getFilePathHash();
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.GET_CURRENT_DIRECTORY_FILE_DIFF)) {
+            Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", currentDirectoryFilesPathHashes);
+
+            ps.setArray(1, SQLCompatibleArray);
+
+            try(ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    diffFilePathHashes.add(rs.getString("File_Path_Hash"));
+                }
+            }
+
+            return diffFilePathHashes;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("An unexpected error occured getting current directory file difference", e);
         }
     }
 

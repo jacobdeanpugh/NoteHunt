@@ -70,4 +70,12 @@ public class DatabaseQueries {
                     vals.Error_Message
                 );
             """;
+
+    public final static String GET_CURRENT_DIRECTORY_FILE_DIFF = """
+                SELECT  File_Path_Hash
+                FROM    file_states
+                WHERE NOT (
+                    File_Path_Hash = Any(?)
+                );
+            """;
 }
