@@ -91,7 +91,7 @@ public class DatabaseHandler {
         ArrayList<String> deletedFilesInDirectory = getDeletedFilesInDirectory(eventResults);
     
         // Remove deleted files from database
-        removeFiles(deletedFilesInDirectory);
+        removeFiles(deletedFilesInDirectory.toArray(new String[0]));
     }
 
     /**
@@ -177,9 +177,9 @@ public class DatabaseHandler {
      * 
      * @param filePathHashes List of file path hashes to remove from database
      */
-    private void removeFiles(ArrayList<String> filePathHashes) {
+    private void removeFiles(String... filePathHashes) {
         // Convert ArrayList to array for SQL array creation
-        String[] rawFilePathHashes = filePathHashes.toArray(new String[0]);
+        String[] rawFilePathHashes = filePathHashes;
 
         try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.REMOVE_FILES_FROM_TABLE)) {
             // Create SQL array from file path hashes
@@ -207,7 +207,18 @@ public class DatabaseHandler {
      */
     @Subscribe
     public void handleFileChangeEvent(FileChangeEvent event) {
-        // Log the path of the changed file
-        System.out.println(event.getPath());
+        switch(event.getKind().name()) {
+            case "ENTRY_CREATE" :
+                break;
+
+            case "ENTRY_MODIFY" : 
+                break;
+
+            case "ENTRY_DELETE" :
+                removeFiles(event.getFilePathHash());
+                break;
+            default :
+                break;
+        }
     }
 }
