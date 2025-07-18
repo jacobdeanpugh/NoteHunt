@@ -78,4 +78,11 @@ public class DatabaseQueries {
                     File_Path_Hash = Any(?)
                 );
             """;
+    
+    public final static String REMOVE_FILES_FROM_TABLE = """
+                DELETE FROM file_states
+                WHERE (
+                    File_Path_Hash = ANY(?)
+                );
+            """;
 }
