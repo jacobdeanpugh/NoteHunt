@@ -5,7 +5,7 @@ import java.sql.*;
 import com.google.common.eventbus.Subscribe;
 
 import dev.notequest.models.DatabaseQueries;
-import dev.notequest.service.FileTreeCrawler.FileResult;
+import dev.notequest.service.FileResult;
 import dev.notequest.handler.events.*;
 
 import java.io.File;
@@ -50,7 +50,6 @@ public class DatabaseHandler {
 
     @Subscribe
     public void handleFileTreeCrawledEvent(FileTreeCrawledEvent event) {
-        System.out.println("In event");
         try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.UPDATE_CURRENT_FILE_STATUS)) {
             for (FileResult fr: event.getFileResults()) {
                 Timestamp last_modified_timestamp = new Timestamp(fr.getLastModified().toMillis());

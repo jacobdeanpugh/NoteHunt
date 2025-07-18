@@ -1,6 +1,6 @@
 package dev.notequest.handler.events;
 
-import dev.notequest.service.FileTreeCrawler.*;
+import dev.notequest.service.FileResult;
 import java.util.ArrayList;
 
 public class FileTreeCrawledEvent {
