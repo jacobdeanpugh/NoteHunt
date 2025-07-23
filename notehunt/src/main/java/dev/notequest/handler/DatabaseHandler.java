@@ -15,6 +15,13 @@ import java.io.File;
  * DatabaseHandler manages database operations for the NoteQuest application.
  * This class handles file indexing, database schema setup, and responds to file system events.
  * Uses H2 embedded database for storing file metadata and indexing status.
+ * 
+ * Key responsibilities:
+ * - Initialize and maintain database connection
+ * - Set up database schema on startup
+ * - Process file system crawl events to sync database with directory state
+ * - Handle individual file change events (create, modify, delete)
+ * - Maintain file metadata including paths, hashes, and indexing status
  */
 public class DatabaseHandler {
     // Database connection configuration constants
@@ -22,26 +29,33 @@ public class DatabaseHandler {
     private static final String CONNECTION_USER = "sa";
     private static final String CONNECTION_PSWD = "";
 
-    // Database connection instance
+    // Database connection instance - maintained for the lifetime of this handler
     private Connection conn;
 
     /**
      * Constructor initializes the database connection and sets up the schema.
      * Creates the data directory if it doesn't exist and establishes H2 database connection.
+     * 
+     * @throws RuntimeException if database connection fails or directory creation is denied
      */
     public DatabaseHandler() {
         try {
             // Ensures the folder for database exists - creates ./data directory if missing
+            // This is necessary because H2 won't create the directory structure automatically
             new File("./data").mkdirs();
             
-            // Establish connection to H2 database
+            // Establish connection to H2 database with embedded mode configuration:
+            // - AUTO_SERVER=TRUE allows multiple connections to the same database
+            // - DB_CLOSE_DELAY=-1 keeps the database open until JVM shutdown
             this.conn = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PSWD);
             
             // Initialize database schema (tables, indexes, etc.)
             setupSchema();
         } catch (SQLException e) {
+            // Wrap SQL exceptions in runtime exception to simplify error handling
             throw new RuntimeException("Unable to establish connection to databse: ", e);
         } catch (SecurityException e) {
+            // Handle case where file system permissions prevent directory creation
             throw new RuntimeException("Unable to create folder due to permissions", e);
         }
     }
@@ -49,12 +63,17 @@ public class DatabaseHandler {
     /**
      * Sets up the database schema by executing the schema creation SQL.
      * This method runs the initial database setup queries to create tables and indexes.
+     * Should be idempotent - safe to run multiple times without causing errors.
+     * 
+     * @throws RuntimeException if schema setup SQL execution fails
      */
     private void setupSchema() {
         try(Statement stmt = conn.createStatement()) {
             // Execute schema setup SQL from DatabaseQueries constants
+            // Using try-with-resources ensures Statement is properly closed
             stmt.execute(DatabaseQueries.SETUP_SCHEMA);
         } catch (SQLException e) {
+            // Wrap SQL exception to maintain consistent error handling pattern
             throw new RuntimeException("Error occured setting up schema", e);
         }
     }
@@ -62,10 +81,14 @@ public class DatabaseHandler {
     /**
      * Tests the database connection validity.
      * Prints connection status to console for debugging purposes.
+     * This is primarily used for troubleshooting database connectivity issues.
+     * 
+     * @throws RuntimeException if connection validity check fails
      */
     public void testDatabaseConnection() {
         try {
             // Check if connection is valid with 0 second timeout
+            // isValid(0) performs a simple connectivity test without waiting
             System.out.println(this.conn.isValid(0) ? "Connection Valid" : "Connection Not Valid");
         } catch (SQLException e) {
             throw new RuntimeException("Unable to establish connection to databse: ", e);
@@ -74,8 +97,12 @@ public class DatabaseHandler {
 
     /**
      * Event handler for FileTreeCrawledEvent.
-     * Processes file system crawl results by updating database with current files
-     * and removing files that no longer exist in the directory.
+     * This method is automatically called by the EventBus when a directory crawl completes.
+     * 
+     * Processes file system crawl results by:
+     * 1. Updating database with all files found in the current directory scan
+     * 2. Identifying files that exist in database but are no longer in the directory
+     * 3. Marking those missing files as deleted to maintain database consistency
      * 
      * @param event FileTreeCrawledEvent containing the results of directory crawling
      */
@@ -85,13 +112,16 @@ public class DatabaseHandler {
         ArrayList<FileResult> eventResults = event.getFileResults();
 
         // Insert or update current files in the database
-        insertCurrentFilesInDirectory(eventResults);
+        // This ensures all currently existing files are properly tracked
+        syncCurrentFilesInDirectory(eventResults);
 
         // Find files that exist in database but not in current directory scan
+        // These are files that have been deleted since the last crawl
         ArrayList<String> deletedFilesInDirectory = getDeletedFilesInDirectory(eventResults);
     
-        // Remove deleted files from database
-        removeFiles(deletedFilesInDirectory.toArray(new String[0]));
+        // Remove deleted files from database to maintain consistency
+        // Convert ArrayList to array for the method signature
+        markFilesAsDeleted(deletedFilesInDirectory.toArray(new String[0]));
     }
 
     /**
@@ -99,29 +129,36 @@ public class DatabaseHandler {
      * Uses SQL array operations to efficiently find the difference between database records
      * and current directory contents.
      * 
+     * This method performs a set difference operation: (database files) - (current directory files)
+     * 
      * @param currentDirectoryFiles List of FileResult objects from current directory scan
      * @return ArrayList of file path hashes for files that should be removed from database
      */
     private ArrayList<String> getDeletedFilesInDirectory(ArrayList<FileResult> currentDirectoryFiles) {
-        // List to store file path hashes of deleted files
+        // List to store file path hashes of files that have been deleted
         ArrayList<String> diffFilePathHashes = new ArrayList<String>();
         
-        // Convert FileResult objects to array of file path hashes
+        // Convert FileResult objects to array of file path hashes for SQL operation
+        // We use hashes instead of full paths for efficiency and consistency
         String[] currentDirectoryFilesPathHashes = new String[currentDirectoryFiles.size()];
 
+        // Extract hash values from each FileResult object
         for(int i = 0; i < currentDirectoryFiles.size(); i++) {
             currentDirectoryFilesPathHashes[i] = currentDirectoryFiles.get(i).getFilePathHash();
         }
 
         try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.GET_CURRENT_DIRECTORY_FILE_DIFF)) {
             // Create SQL array from file path hashes for database query
+            // This allows us to pass the entire array as a single parameter
             Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", currentDirectoryFilesPathHashes);
 
-            // Set the array parameter in prepared statement
+            // Set the array parameter in prepared statement (first and only parameter)
             ps.setArray(1, SQLCompatibleArray);
 
             // Execute query to find files in database but not in current directory
+            // The query should return files that exist in DB but not in the provided array
             try(ResultSet rs = ps.executeQuery()) {
+                // Process each file that exists in database but not in current directory
                 while (rs.next()) {
                     // Add each deleted file's path hash to result list
                     diffFilePathHashes.add(rs.getString("File_Path_Hash"));
@@ -131,93 +168,146 @@ public class DatabaseHandler {
             return diffFilePathHashes;
 
         } catch (SQLException e) {
+            // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured getting current directory file difference", e);
         }
     }
 
     /**
      * Inserts or updates file records in the database using batch processing.
-     * Updates file metadata including path, hash, indexing status, and last modified timestamp.
+     * This method performs an "upsert" operation - insert if new, update if exists.
+     * 
+     * Updates file metadata including:
+     * - File path and hash for identification
+     * - Indexing status (PENDING for successful files, ERROR for problematic ones)
+     * - Last modified timestamp for change detection
+     * - Exception messages for debugging failed files
+     * 
+     * Uses batch processing for better performance when handling many files.
      * 
      * @param currentDirectoryFiles List of FileResult objects to insert/update in database
      */
-    private void insertCurrentFilesInDirectory(ArrayList<FileResult> currentDirectoryFiles) {
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.UPDATE_CURRENT_FILE_STATUS)) {
-            // Process each file result and add to batch
+    private void syncCurrentFilesInDirectory(ArrayList<FileResult> currentDirectoryFiles) {
+        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.SYNC_FILE_STATUS_WITH_DIRECTORY)) {
+            // Process each file result and add to batch for efficient execution
             for (FileResult fr: currentDirectoryFiles) {
-                // Convert last modified time to SQL timestamp
+                // Convert FileResult's Instant to SQL Timestamp for database storage
                 Timestamp last_modified_timestamp = new Timestamp(fr.getLastModified().toMillis());
 
-                // Set parameters for prepared statement
-                ps.setString(1, fr.getPath().toString());           // File path
-                ps.setString(2, fr.getFilePathHash());              // File path hash
-                ps.setString(3,                                     // Indexing status based on file status
+                // Set parameters for prepared statement (index corresponds to SQL placeholders)
+                ps.setString(1, fr.getPath().toString());           // File path as string
+                ps.setString(2, fr.getFilePathHash());              // Hash for efficient lookups
+                ps.setString(3,                                     // Indexing status based on file processing result
                     fr.getFileStatus() == FileResult.FileStatus.SUCCESS ?
                     DatabaseQueries.IndexingStatus.PENDING : DatabaseQueries.IndexingStatus.ERROR);
-                ps.setTimestamp(4, last_modified_timestamp);        // Last modified timestamp
-                ps.setString(5, fr.getExc().getMessage());          // Exception message (if any)
+                ps.setTimestamp(4, last_modified_timestamp);        // When file was last modified
+                ps.setString(5, fr.getExc().getMessage());          // Exception message (null if no error)
 
-                // Add current parameters to batch
+                // Add current set of parameters to the batch
                 ps.addBatch();
             }
 
             // Execute all batched statements at once for better performance
+            // Returns array of update counts for each statement in the batch
             int[] counts = ps.executeBatch();                   
 
+            // Log the number of records processed for monitoring
             System.out.println("Upserted " + counts.length + " rows.");
 
         } catch (SQLException e) {
+            // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured updating current files status", e);
         }
     }
 
     /**
+     * Marks files as deleted in the database instead of removing them completely.
+     * This approach maintains historical data while indicating the file is no longer present.
+     * 
+     * @param filePathHashes Variable number of file path hashes to mark as deleted
+     */
+    private void markFilesAsDeleted(String... filePathHashes) {
+        // Delegate to generic update method with specific SQL query
+        int count = preformUpdateOnFileRecords(DatabaseQueries.MARK_FILES_AS_DELETED, filePathHashes);
+
+        // Log the operation result for monitoring
+        System.out.println("Marked " + count + " files as deleted");
+    }
+
+    /**
      * Removes files from the database using their file path hashes.
      * Uses SQL array operations for efficient bulk deletion.
+     * This completely removes records, unlike markFilesAsDeleted which preserves them.
      * 
-     * @param filePathHashes List of file path hashes to remove from database
+     * @param filePathHashes Variable number of file path hashes to remove from database
      */
-    private void removeFiles(String... filePathHashes) {
-        // Convert ArrayList to array for SQL array creation
-        String[] rawFilePathHashes = filePathHashes;
+    private void removeFilesFromTable(String... filePathHashes) {
+        // Delegate to generic update method with specific SQL query
+        int count = preformUpdateOnFileRecords(DatabaseQueries.REMOVE_FILES_FROM_TABLE, filePathHashes);
 
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.REMOVE_FILES_FROM_TABLE)) {
-            // Create SQL array from file path hashes
-            Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", rawFilePathHashes);
+        // Log the operation result for monitoring
+        System.out.println("Removed " + count + " rows.");
+    }
 
-            // Set array parameter for deletion query
+    /**
+     * Generic method for performing update operations on the file states table.
+     * This method reduces code duplication between different update operations.
+     * 
+     * Uses SQL arrays to efficiently process multiple files in a single query.
+     * 
+     * @param databaseStatement The SQL statement to execute (with array parameter placeholder)
+     * @param filePathHashes Variable number of file path hashes to process
+     * @return Number of rows affected by the update operation
+     */
+    private int preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
+        try (PreparedStatement ps = conn.prepareStatement(databaseStatement)) {
+            // Create SQL array from file path hashes for batch processing
+            Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", filePathHashes);
+
+            // Set array parameter for the query (assumes first parameter is the array)
             ps.setArray(1, SQLCompatibleArray);
 
-            // Execute deletion and get count of affected rows
-            int count = ps.executeUpdate();
-
-            System.out.println("Removed " + count + " rows.");
+            // Execute update and return count of affected rows
+            return ps.executeUpdate();
 
         } catch (SQLException e) {
+            // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured removing rows from database", e);
         }
     }
 
     /**
      * Event handler for FileChangeEvent.
-     * Currently just logs the file path that changed.
-     * This is a placeholder for future file change processing logic.
+     * This method is automatically called by the EventBus when individual file changes are detected.
+     * 
+     * Handles different types of file system events:
+     * - ENTRY_CREATE: File was created (currently no action)
+     * - ENTRY_MODIFY: File was modified (currently no action)
+     * - ENTRY_DELETE: File was deleted (removes from database)
+     * 
+     * This provides real-time updates between directory crawls for immediate consistency.
      * 
      * @param event FileChangeEvent containing information about the changed file
      */
     @Subscribe
     public void handleFileChangeEvent(FileChangeEvent event) {
+        // Handle different file system events based on the type of change
         switch(event.getKind().name()) {
             case "ENTRY_CREATE" :
+                // TODO: Handle file creation - could trigger indexing or update status
                 break;
 
             case "ENTRY_MODIFY" : 
+                // TODO: Handle file modification - could update last modified time and re-index
                 break;
 
             case "ENTRY_DELETE" :
-                removeFiles(event.getFilePathHash());
+                // Handle file deletion by removing it from database immediately
+                // This ensures database stays consistent even between full directory crawls
+                removeFilesFromTable(event.getFilePathHash());
                 break;
             default :
+                // Handle any unexpected event types gracefully by doing nothing
                 break;
         }
     }

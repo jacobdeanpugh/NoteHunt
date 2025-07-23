@@ -7,6 +7,7 @@ public class DatabaseQueries {
         public final static String IN_PROGRESS = "In_Progress";
         public final static String COMPLETE = "Complete";
         public final static String ERROR = "Error";
+        public final static String DELETED = "Deleted";
     }
 
     // Schema setup - DDL operations
@@ -22,7 +23,8 @@ public class DatabaseQueries {
                                     'Pending',
                                     'In_Progress',
                                     'Complete',
-                                    'Error'
+                                    'Error',
+                                    'Deleted'
                                 )),
                 Last_Modified   DATETIME
                                 NOT NULL,
@@ -31,7 +33,7 @@ public class DatabaseQueries {
             """;
 
     // File operations - INSERT/UPDATE queries
-    public final static String UPDATE_CURRENT_FILE_STATUS = """
+    public final static String SYNC_FILE_STATUS_WITH_DIRECTORY = """
             MERGE INTO file_states AS fs
             USING (
                 VALUES
@@ -72,6 +74,14 @@ public class DatabaseQueries {
                 vals.Error_Message
             );
             """;
+    public final static String MARK_FILES_AS_DELETED = """
+            UPDATE file_states
+            SET
+                Status = 'Deleted'
+            WHERE
+                (File_Path_Hash = ANY(?));
+            """;
+
 
     // File operations - SELECT queries
     public final static String GET_CURRENT_DIRECTORY_FILE_DIFF = """
