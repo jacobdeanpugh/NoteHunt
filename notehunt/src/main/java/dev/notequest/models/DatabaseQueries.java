@@ -96,7 +96,8 @@ public class DatabaseQueries {
             FROM    file_states
             WHERE NOT (
                 File_Path_Hash = Any(?)
-            );
+            ) 
+                AND Status <> 'Deleted';
             """;
 
     // File operations - DELETE queries

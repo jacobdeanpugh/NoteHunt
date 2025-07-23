@@ -277,6 +277,7 @@ public class DatabaseHandler {
      */
     private int preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
         try (PreparedStatement ps = conn.prepareStatement(databaseStatement)) {
+            // TODO: Update this function to take in a FileResult Object and update every field
             // Create SQL array from file path hashes for batch processing
             Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", filePathHashes);
 
@@ -310,7 +311,8 @@ public class DatabaseHandler {
         // Handle different file system events based on the type of change
         switch(event.getKind().name()) {
             case "ENTRY_CREATE" :
-                // TODO: Add a file results object to the event to make this easier
+                
+                insertFilesIntoTable(event.getFileResult());
                 break;
 
             case "ENTRY_MODIFY" : 
@@ -321,7 +323,7 @@ public class DatabaseHandler {
             case "ENTRY_DELETE" :
                 // Handle file deletion by removing it from database immediately
                 // This ensures database stays consistent even between full directory crawls
-                removeFilesFromTable(event.getFileResult().getFilePathHash());
+                markFilesAsDeleted(event.getFileResult().getFilePathHash());
                 break;
             default :
                 // Handle any unexpected event types gracefully by doing nothing
