@@ -1,4 +1,4 @@
-package dev.notequest.handler.events;
+package dev.notequest.events;
 
 import dev.notequest.service.FileResult;
 import java.util.ArrayList;

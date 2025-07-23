@@ -1,4 +1,4 @@
-package dev.notequest.handler.events;
+package dev.notequest.events;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import dev.notequest.util.MD5Util;

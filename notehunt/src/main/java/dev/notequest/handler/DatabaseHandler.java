@@ -4,9 +4,10 @@ import java.sql.*;
 
 import com.google.common.eventbus.Subscribe;
 
+import dev.notequest.events.*;
 import dev.notequest.models.DatabaseQueries;
 import dev.notequest.service.FileResult;
-import dev.notequest.handler.events.*;
+
 import java.util.ArrayList;
 
 import java.io.File;

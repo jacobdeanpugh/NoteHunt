@@ -7,8 +7,8 @@ import java.nio.file.*;
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
 
+import dev.notequest.events.*;
 import dev.notequest.handler.EventBusRegistry;
-import dev.notequest.handler.events.*;
 
 /**
  * FileWatcherService is a background thread that monitors a directory for file system changes.
