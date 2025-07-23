@@ -3,6 +3,8 @@ package dev.notequest.service;
 import java.io.IOException;
 import java.lang.Thread;
 import java.nio.file.*;
+import java.nio.file.attribute.*;
+import java.text.AttributedCharacterIterator.Attribute;
 
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
@@ -114,8 +116,11 @@ public class FileWatcherService extends Thread {
                 // Process all pending events for this key
                 for (WatchEvent<?> event : key.pollEvents()) {
                     Path full = dirPath.resolve(event.context().toString());
-                    if (fileIsInExtensionFilter(event.context().toString()))
-                        EventBusRegistry.bus().post(new FileChangeEvent(full, event.kind()));
+
+                    FileResult fileResult = getFileResult(full);
+
+                    if (fileIsInExtensionFilter(full.toString()))
+                        EventBusRegistry.bus().post(new FileChangeEvent(fileResult, event.kind()));
                 }
                 
                 // Reset the key to continue receiving events
@@ -126,6 +131,20 @@ public class FileWatcherService extends Thread {
         } catch (Exception e) {
             throw new RuntimeException("An unexpected exception occurred during directory monitoring", e);
         }
+    }
+
+    private FileResult getFileResult(Path filePath) {
+        FileResult fileResult;
+
+        try {
+            FileTime lastModified = Files.getLastModifiedTime(filePath);
+            fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, lastModified);
+
+        } catch (Exception e) {
+            fileResult = new FileResult(filePath, FileResult.FileStatus.ERROR, e);
+        }
+
+        return fileResult;
     }
     
     /**

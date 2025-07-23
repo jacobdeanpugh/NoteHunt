@@ -315,13 +315,13 @@ public class DatabaseHandler {
 
             case "ENTRY_MODIFY" : 
                 // TODO: Add a new parameter for last modified
-                markFilesAsPending(event.getFilePathHash());
+                markFilesAsPending(event.getFileResult().getFilePathHash());
                 break;
 
             case "ENTRY_DELETE" :
                 // Handle file deletion by removing it from database immediately
                 // This ensures database stays consistent even between full directory crawls
-                removeFilesFromTable(event.getFilePathHash());
+                removeFilesFromTable(event.getFileResult().getFilePathHash());
                 break;
             default :
                 // Handle any unexpected event types gracefully by doing nothing
