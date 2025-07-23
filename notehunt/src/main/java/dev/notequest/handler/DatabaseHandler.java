@@ -4,10 +4,9 @@ import java.sql.*;
 
 import com.google.common.eventbus.Subscribe;
 
-import dev.notequest.events.*;
 import dev.notequest.models.DatabaseQueries;
 import dev.notequest.service.FileResult;
-
+import dev.notequest.events.*;
 import java.util.ArrayList;
 
 import java.io.File;
@@ -110,19 +109,19 @@ public class DatabaseHandler {
     @Subscribe
     public void handleFileTreeCrawledEvent(FileTreeCrawledEvent event) {
         // Get the list of files found during directory crawling
-        ArrayList<FileResult> eventResults = event.getFileResults();
+        FileResult[] eventResults = event.getFileResults();
 
         // Insert or update current files in the database
         // This ensures all currently existing files are properly tracked
-        syncCurrentFilesInDirectory(eventResults);
+        insertFilesIntoTable(eventResults);
 
         // Find files that exist in database but not in current directory scan
         // These are files that have been deleted since the last crawl
-        ArrayList<String> deletedFilesInDirectory = getDeletedFilesInDirectory(eventResults);
+        String [] deletedFilesInDirectory = getDeletedFilesInDirectory(eventResults);
     
         // Remove deleted files from database to maintain consistency
         // Convert ArrayList to array for the method signature
-        markFilesAsDeleted(deletedFilesInDirectory.toArray(new String[0]));
+        markFilesAsDeleted(deletedFilesInDirectory);
     }
 
     /**
@@ -135,17 +134,17 @@ public class DatabaseHandler {
      * @param currentDirectoryFiles List of FileResult objects from current directory scan
      * @return ArrayList of file path hashes for files that should be removed from database
      */
-    private ArrayList<String> getDeletedFilesInDirectory(ArrayList<FileResult> currentDirectoryFiles) {
+    private String[] getDeletedFilesInDirectory(FileResult[] currentDirectoryFiles) {
         // List to store file path hashes of files that have been deleted
         ArrayList<String> diffFilePathHashes = new ArrayList<String>();
         
         // Convert FileResult objects to array of file path hashes for SQL operation
         // We use hashes instead of full paths for efficiency and consistency
-        String[] currentDirectoryFilesPathHashes = new String[currentDirectoryFiles.size()];
+        String[] currentDirectoryFilesPathHashes = new String[currentDirectoryFiles.length];
 
         // Extract hash values from each FileResult object
-        for(int i = 0; i < currentDirectoryFiles.size(); i++) {
-            currentDirectoryFilesPathHashes[i] = currentDirectoryFiles.get(i).getFilePathHash();
+        for(int i = 0; i < currentDirectoryFiles.length; i++) {
+            currentDirectoryFilesPathHashes[i] = currentDirectoryFiles[i].getFilePathHash();
         }
 
         try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.GET_CURRENT_DIRECTORY_FILE_DIFF)) {
@@ -166,7 +165,7 @@ public class DatabaseHandler {
                 }
             }
 
-            return diffFilePathHashes;
+            return diffFilePathHashes.toArray(new String[0]);
 
         } catch (SQLException e) {
             // Wrap SQL exception for consistent error handling
@@ -188,7 +187,7 @@ public class DatabaseHandler {
      * 
      * @param currentDirectoryFiles List of FileResult objects to insert/update in database
      */
-    private void syncCurrentFilesInDirectory(ArrayList<FileResult> currentDirectoryFiles) {
+    private void insertFilesIntoTable(FileResult... currentDirectoryFiles) {
         try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.SYNC_FILE_STATUS_WITH_DIRECTORY)) {
             // Process each file result and add to batch for efficient execution
             for (FileResult fr: currentDirectoryFiles) {
@@ -236,6 +235,21 @@ public class DatabaseHandler {
     }
 
     /**
+     * Marks files as pending for re-indexing in the database.
+     * This is typically called when files are modified and need to be processed again.
+     * The pending status indicates that the file content has changed and requires re-indexing.
+     * 
+     * @param filePathHashes Variable number of file path hashes to mark as pending
+     */
+    private void markFilesAsPending(String... filePathHashes) { 
+        // Delegate to generic update method with specific SQL query for pending status
+        int count = preformUpdateOnFileRecords(DatabaseQueries.MARK_FILES_AS_PENDING, filePathHashes);
+
+        // Log the operation result for monitoring and debugging
+        System.out.println("Marked " + count + " files as pending");
+    }
+
+    /**
      * Removes files from the database using their file path hashes.
      * Uses SQL array operations for efficient bulk deletion.
      * This completely removes records, unlike markFilesAsDeleted which preserves them.
@@ -251,10 +265,11 @@ public class DatabaseHandler {
     }
 
     /**
-     * Generic method for performing update operations on the file states table.
+     * Generic method for performing update operations on the file records table.
      * This method reduces code duplication between different update operations.
      * 
      * Uses SQL arrays to efficiently process multiple files in a single query.
+     * Supports various operations like marking files as deleted, pending, or removing them entirely.
      * 
      * @param databaseStatement The SQL statement to execute (with array parameter placeholder)
      * @param filePathHashes Variable number of file path hashes to process
@@ -283,7 +298,7 @@ public class DatabaseHandler {
      * 
      * Handles different types of file system events:
      * - ENTRY_CREATE: File was created (currently no action)
-     * - ENTRY_MODIFY: File was modified (currently no action)
+     * - ENTRY_MODIFY: File was modified (marks file as pending)
      * - ENTRY_DELETE: File was deleted (removes from database)
      * 
      * This provides real-time updates between directory crawls for immediate consistency.
@@ -295,11 +310,12 @@ public class DatabaseHandler {
         // Handle different file system events based on the type of change
         switch(event.getKind().name()) {
             case "ENTRY_CREATE" :
-                // TODO: Handle file creation - could trigger indexing or update status
+                // TODO: Add a file results object to the event to make this easier
                 break;
 
             case "ENTRY_MODIFY" : 
-                // TODO: Handle file modification - could update last modified time and re-index
+                // TODO: Add a new parameter for last modified
+                markFilesAsPending(event.getFilePathHash());
                 break;
 
             case "ENTRY_DELETE" :

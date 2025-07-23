@@ -82,6 +82,13 @@ public class DatabaseQueries {
                 (File_Path_Hash = ANY(?));
             """;
 
+    public final static String MARK_FILES_AS_PENDING = """
+            UPDATE file_states
+            SET
+                status = 'Pending'
+            WHERE
+                (File_Path_Hash = ANY(?));
+            """;
 
     // File operations - SELECT queries
     public final static String GET_CURRENT_DIRECTORY_FILE_DIFF = """

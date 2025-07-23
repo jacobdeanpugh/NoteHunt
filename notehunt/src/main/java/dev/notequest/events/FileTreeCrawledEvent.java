@@ -10,7 +10,7 @@ public class FileTreeCrawledEvent {
         this.fileResults = fileResults;
     }
 
-    public ArrayList<FileResult> getFileResults() {
-        return this.fileResults;
+    public FileResult[] getFileResults() {
+        return this.fileResults.toArray(new FileResult[0]);
     }
 }
