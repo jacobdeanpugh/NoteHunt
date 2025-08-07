@@ -68,8 +68,17 @@ public class FileWatcherService extends Thread {
             this.dirPath = Paths.get(directoryPath);
             
             // Register the directory with recursive monitoring enabled
-            dirPath.register(watchService, STANDARD_WATCH_EVENT_KINDS, ExtendedWatchEventModifier.FILE_TREE);
             
+            Files.walk(dirPath)
+                .filter(Files::isDirectory)
+                .forEach(path -> {
+                    try {
+                        path.register(watchService, STANDARD_WATCH_EVENT_KINDS);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to register directory: " + path, e);
+                    }
+                });
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize WatchService", e);
         } catch (InvalidPathException e) {
