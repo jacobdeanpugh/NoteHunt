@@ -78,8 +78,9 @@ public class DatabaseQueries {
             UPDATE file_states
             SET
                 Status = 'Deleted'
+                
             WHERE
-                (File_Path_Hash = ANY(?));
+                File_Path_Hash = ?;
             """;
 
     public final static String MARK_FILES_AS_PENDING = """

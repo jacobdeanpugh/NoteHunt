@@ -146,12 +146,12 @@ public class FileWatcherService extends Thread {
 
         try {
             FileTime lastModified = Files.getLastModifiedTime(filePath);
-            fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, lastModified);
+            fileResult = new FileResult(filePath, lastModified);
 
         } catch (FileNotFoundException e) {
             // If a file is deleted then return the current time as last modfied
             FileTime now = FileTime.from(Instant.now());
-            fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, now);
+            fileResult = new FileResult(filePath, now);
 
         } catch (Exception e) {
             fileResult = new FileResult(filePath, FileResult.FileStatus.ERROR, e);

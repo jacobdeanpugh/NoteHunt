@@ -11,6 +11,8 @@ import java.util.ArrayList;
 
 import java.io.File;
 
+// TODO: Refactor the mark functions to dynamic batches to allow for every field from a file to be updated
+
 /**
  * DatabaseHandler manages database operations for the NoteQuest application.
  * This class handles file indexing, database schema setup, and responds to file system events.
@@ -197,9 +199,7 @@ public class DatabaseHandler {
                 // Set parameters for prepared statement (index corresponds to SQL placeholders)
                 ps.setString(1, fr.getPath().toString());           // File path as string
                 ps.setString(2, fr.getFilePathHash());              // Hash for efficient lookups
-                ps.setString(3,                                     // Indexing status based on file processing result
-                    fr.getFileStatus() == FileResult.FileStatus.SUCCESS ?
-                    DatabaseQueries.IndexingStatus.PENDING : DatabaseQueries.IndexingStatus.ERROR);
+                ps.setString(3, fr.getFileStatus().toString());     // Indexing status based on file processing result
                 ps.setTimestamp(4, last_modified_timestamp);        // When file was last modified
                 ps.setString(5, fr.getExc().getMessage());          // Exception message (null if no error)
 
@@ -275,7 +275,9 @@ public class DatabaseHandler {
      * @param filePathHashes Variable number of file path hashes to process
      * @return Number of rows affected by the update operation
      */
-    private int preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
+    private int 
+    
+    preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
         try (PreparedStatement ps = conn.prepareStatement(databaseStatement)) {
             // TODO: Update this function to take in a FileResult Object and update every field
             // Create SQL array from file path hashes for batch processing
@@ -311,7 +313,6 @@ public class DatabaseHandler {
         // Handle different file system events based on the type of change
         switch(event.getKind().name()) {
             case "ENTRY_CREATE" :
-                
                 insertFilesIntoTable(event.getFileResult());
                 break;
 

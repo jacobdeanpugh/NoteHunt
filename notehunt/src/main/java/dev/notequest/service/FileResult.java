@@ -26,7 +26,19 @@ public class FileResult {
             COMPLETE,
             DELETED,
             /** An error occurred while attempting to visit or process the file */
-            ERROR
+            ERROR;
+
+            @Override
+            public String toString() {
+                switch (this) {
+                    case PENDING: return "Pending";
+                    case IN_PROGRESS: return "In_Progress";
+                    case COMPLETE: return "Completed";
+                    case DELETED: return "Deleted";
+                    case ERROR: return "Error";
+                    default: throw new IllegalArgumentException();
+                }
+            }
         }
         
         private Path filePath;          // The absolute or relative path to the file
