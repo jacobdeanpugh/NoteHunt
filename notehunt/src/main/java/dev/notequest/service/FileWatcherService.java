@@ -1,10 +1,12 @@
 package dev.notequest.service;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.Thread;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
 import java.text.AttributedCharacterIterator.Attribute;
+import java.time.Instant;
 
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
@@ -148,6 +150,11 @@ public class FileWatcherService extends Thread {
         try {
             FileTime lastModified = Files.getLastModifiedTime(filePath);
             fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, lastModified);
+
+        } catch (FileNotFoundException e) {
+            // If a file is deleted then return the current time as last modfied
+            FileTime now = FileTime.from(Instant.now());
+            fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, now);
 
         } catch (Exception e) {
             fileResult = new FileResult(filePath, FileResult.FileStatus.ERROR, e);
