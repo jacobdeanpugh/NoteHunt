@@ -8,9 +8,6 @@ import java.nio.file.attribute.*;
 import java.text.AttributedCharacterIterator.Attribute;
 import java.time.Instant;
 
-// Adds File Tree Tracking
-import com.sun.nio.file.ExtendedWatchEventModifier;
-
 import dev.notequest.events.*;
 import dev.notequest.handler.EventBusRegistry;
 
