@@ -5,6 +5,7 @@ import java.lang.Thread;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
 import java.text.AttributedCharacterIterator.Attribute;
+import java.time.Instant;
 
 // Adds File Tree Tracking
 import com.sun.nio.file.ExtendedWatchEventModifier;
@@ -126,7 +127,7 @@ public class FileWatcherService extends Thread {
                 for (WatchEvent<?> event : key.pollEvents()) {
                     Path full = dirPath.resolve(event.context().toString());
 
-                    FileResult fileResult = getFileResult(full);
+                    FileResult fileResult = getFileResult(full, event.kind());
 
                     if (fileIsInExtensionFilter(full.toString()))
                         EventBusRegistry.bus().post(new FileChangeEvent(fileResult, event.kind()));
@@ -142,11 +143,19 @@ public class FileWatcherService extends Thread {
         }
     }
 
-    private FileResult getFileResult(Path filePath) {
+    private FileResult getFileResult(Path filePath, WatchEvent.Kind<?> kind) {
         FileResult fileResult;
 
         try {
-            FileTime lastModified = Files.getLastModifiedTime(filePath);
+            FileTime lastModified;
+
+            if (kind.name().equals("ENTRY_CREATE")) {
+                // Set Last Modified Time To Now
+                lastModified = FileTime.from(Instant.now());
+            } else {
+                lastModified = Files.getLastModifiedTime(filePath);
+            }
+
             fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, lastModified);
 
         } catch (Exception e) {
