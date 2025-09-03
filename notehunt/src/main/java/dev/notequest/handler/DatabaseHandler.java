@@ -235,21 +235,6 @@ public class DatabaseHandler {
     }
 
     /**
-     * Marks files as pending for re-indexing in the database.
-     * This is typically called when files are modified and need to be processed again.
-     * The pending status indicates that the file content has changed and requires re-indexing.
-     * 
-     * @param filePathHashes Variable number of file path hashes to mark as pending
-     */
-    private void markFilesAsPending(String... filePathHashes) { 
-        // Delegate to generic update method with specific SQL query for pending status
-        int count = preformUpdateOnFileRecords(DatabaseQueries.MARK_FILES_AS_PENDING, filePathHashes);
-
-        // Log the operation result for monitoring and debugging
-        System.out.println("Marked " + count + " files as pending");
-    }
-
-    /**
      * Generic method for performing update operations on the file records table.
      * This method reduces code duplication between different update operations.
      * 

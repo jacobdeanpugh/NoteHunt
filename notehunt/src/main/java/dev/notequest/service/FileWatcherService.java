@@ -126,7 +126,7 @@ public class FileWatcherService extends Thread {
                 for (WatchEvent<?> event : key.pollEvents()) {
                     Path full = dirPath.resolve(event.context().toString());
 
-                    FileResult fileResult = getFileResult(full, event.kind());
+                    FileResult fileResult = getFileResultFromFileChange(full, event.kind());
 
                     if (fileIsInExtensionFilter(full.toString()))
                         EventBusRegistry.bus().post(new FileChangeEvent(fileResult));
@@ -142,29 +142,18 @@ public class FileWatcherService extends Thread {
         }
     }
 
-    private FileResult getFileResult(Path filePath, WatchEvent.Kind<?> kind) {
+    private FileResult getFileResultFromFileChange(Path filePath, WatchEvent.Kind<?> kind) {
         FileResult fileResult;
-        FileStatus fileStatus;
-
-        switch(kind.name()) {
-            case "ENTRY_CREATE" :
-            case "ENTRY_MODIFY" : 
-                fileStatus = FileStatus.PENDING;
-                break;
-            case "ENTRY_DELETE" :
-                fileStatus = FileStatus.DELETED;
-            default :
-                break;
-        }
 
         try {
+            // File is created or modifed
             FileTime lastModified = Files.getLastModifiedTime(filePath);
-            fileResult = new FileResult(filePath, lastModified);
+            fileResult = new FileResult(filePath, FileStatus.PENDING, lastModified);
 
         } catch (FileNotFoundException e) {
-            // If a file is deleted then return the current time as last modfied
+            // File is deleted
             FileTime now = FileTime.from(Instant.now());
-            fileResult = new FileResult(filePath, now);
+            fileResult = new FileResult(filePath, FileStatus.DELETED, now);
 
         } catch (Exception e) {
             fileResult = new FileResult(filePath, FileResult.FileStatus.ERROR, e);
