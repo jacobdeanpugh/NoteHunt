@@ -10,6 +10,7 @@ import java.time.Instant;
 
 import dev.notequest.events.*;
 import dev.notequest.handler.EventBusRegistry;
+import dev.notequest.service.FileResult.*;
 
 /**
  * FileWatcherService is a background thread that monitors a directory for file system changes.
@@ -125,10 +126,10 @@ public class FileWatcherService extends Thread {
                 for (WatchEvent<?> event : key.pollEvents()) {
                     Path full = dirPath.resolve(event.context().toString());
 
-                    FileResult fileResult = getFileResult(full);
+                    FileResult fileResult = getFileResult(full, event.kind());
 
                     if (fileIsInExtensionFilter(full.toString()))
-                        EventBusRegistry.bus().post(new FileChangeEvent(fileResult, event.kind()));
+                        EventBusRegistry.bus().post(new FileChangeEvent(fileResult));
                 }
                 
                 // Reset the key to continue receiving events
@@ -141,8 +142,20 @@ public class FileWatcherService extends Thread {
         }
     }
 
-    private FileResult getFileResult(Path filePath) {
+    private FileResult getFileResult(Path filePath, WatchEvent.Kind<?> kind) {
         FileResult fileResult;
+        FileStatus fileStatus;
+
+        switch(kind.name()) {
+            case "ENTRY_CREATE" :
+            case "ENTRY_MODIFY" : 
+                fileStatus = FileStatus.PENDING;
+                break;
+            case "ENTRY_DELETE" :
+                fileStatus = FileStatus.DELETED;
+            default :
+                break;
+        }
 
         try {
             FileTime lastModified = Files.getLastModifiedTime(filePath);

@@ -250,21 +250,6 @@ public class DatabaseHandler {
     }
 
     /**
-     * Removes files from the database using their file path hashes.
-     * Uses SQL array operations for efficient bulk deletion.
-     * This completely removes records, unlike markFilesAsDeleted which preserves them.
-     * 
-     * @param filePathHashes Variable number of file path hashes to remove from database
-     */
-    private void removeFilesFromTable(String... filePathHashes) {
-        // Delegate to generic update method with specific SQL query
-        int count = preformUpdateOnFileRecords(DatabaseQueries.REMOVE_FILES_FROM_TABLE, filePathHashes);
-
-        // Log the operation result for monitoring
-        System.out.println("Removed " + count + " rows.");
-    }
-
-    /**
      * Generic method for performing update operations on the file records table.
      * This method reduces code duplication between different update operations.
      * 
@@ -275,9 +260,7 @@ public class DatabaseHandler {
      * @param filePathHashes Variable number of file path hashes to process
      * @return Number of rows affected by the update operation
      */
-    private int 
-    
-    preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
+    private int preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
         try (PreparedStatement ps = conn.prepareStatement(databaseStatement)) {
             // TODO: Update this function to take in a FileResult Object and update every field
             // Create SQL array from file path hashes for batch processing
@@ -311,24 +294,5 @@ public class DatabaseHandler {
     @Subscribe
     public void handleFileChangeEvent(FileChangeEvent event) {
         // Handle different file system events based on the type of change
-        switch(event.getKind().name()) {
-            case "ENTRY_CREATE" :
-                insertFilesIntoTable(event.getFileResult());
-                break;
-
-            case "ENTRY_MODIFY" : 
-                // TODO: Add a new parameter for last modified
-                markFilesAsPending(event.getFileResult().getFilePathHash());
-                break;
-
-            case "ENTRY_DELETE" :
-                // Handle file deletion by removing it from database immediately
-                // This ensures database stays consistent even between full directory crawls
-                markFilesAsDeleted(event.getFileResult().getFilePathHash());
-                break;
-            default :
-                // Handle any unexpected event types gracefully by doing nothing
-                break;
-        }
     }
 }
