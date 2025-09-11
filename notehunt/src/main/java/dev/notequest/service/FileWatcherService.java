@@ -1,11 +1,9 @@
 package dev.notequest.service;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.Thread;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
-import java.text.AttributedCharacterIterator.Attribute;
 import java.time.Instant;
 
 import dev.notequest.events.*;
@@ -146,14 +144,18 @@ public class FileWatcherService extends Thread {
         FileResult fileResult;
 
         try {
+
+            // File was deleted
+            if (kind.name().equals("ENTRY_DELETE")) {
+                FileTime lastModified = FileTime.from(Instant.now());
+                fileResult = new FileResult(filePath, FileStatus.DELETED, lastModified);
+
+                return fileResult;
+            }
+
             // File is created or modifed
             FileTime lastModified = Files.getLastModifiedTime(filePath);
             fileResult = new FileResult(filePath, FileStatus.PENDING, lastModified);
-
-        } catch (FileNotFoundException e) {
-            // File is deleted
-            FileTime now = FileTime.from(Instant.now());
-            fileResult = new FileResult(filePath, FileStatus.DELETED, now);
 
         } catch (Exception e) {
             fileResult = new FileResult(filePath, FileResult.FileStatus.ERROR, e);
