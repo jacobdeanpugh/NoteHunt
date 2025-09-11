@@ -32,8 +32,7 @@ public class DatabaseQueries {
             );
             """;
 
-    // File operations - INSERT/UPDATE queries
-    public final static String SYNC_FILE_STATUS_WITH_DIRECTORY = """
+    public final static String STANDARD_MERGE_INTO_TABLE = """
             MERGE INTO file_states AS fs
             USING (
                 VALUES
@@ -49,10 +48,7 @@ public class DatabaseQueries {
             WHEN MATCHED
             AND vals.Last_Modified > fs.Last_Modified
             THEN UPDATE SET
-                Status        = CASE
-                                WHEN vals.Status = 'Error' THEN 'Error'
-                                ELSE 'Pending'
-                                END,
+                Status        = vals.Status,
                 Last_Modified = vals.Last_Modified,
                 Error_Message = vals.Error_Message
             WHEN NOT MATCHED
@@ -66,20 +62,19 @@ public class DatabaseQueries {
             VALUES (
                 vals.File_Path,
                 vals.File_Path_Hash,
-                CASE
-                WHEN vals.Status = 'Error' THEN 'Error'
-                ELSE 'Pending'
-                END,
+                vals.Status,
                 vals.Last_Modified,
                 vals.Error_Message
             );
             """;
+    
     public final static String MARK_FILES_AS_DELETED = """
             UPDATE file_states
             SET
                 Status = 'Deleted'
+                
             WHERE
-                (File_Path_Hash = ANY(?));
+                File_Path_Hash = ANY(?);
             """;
 
     public final static String MARK_FILES_AS_PENDING = """
@@ -91,9 +86,9 @@ public class DatabaseQueries {
             """;
 
     // File operations - SELECT queries
-    public final static String GET_CURRENT_DIRECTORY_FILE_DIFF = """
-            SELECT  File_Path_Hash
-            FROM    file_states
+    public final static String FLAG_STALE_FILES_IN_DIRECTORY = """
+            UPDATE file_states
+            SET status = 'Deleted'
             WHERE NOT (
                 File_Path_Hash = Any(?)
             ) 

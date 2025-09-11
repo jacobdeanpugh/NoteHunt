@@ -115,7 +115,7 @@ public class FileTreeCrawler extends SimpleFileVisitor<Path> {
         // Only process regular files that match the extension filter
         if (attr.isRegularFile() && fileIsInExtensionFilter(file)) {
             // Create a successful result with the file path and metadata
-            FileResult result = new FileResult(file, FileStatus.SUCCESS, attr.lastModifiedTime());
+            FileResult result = new FileResult(file, FileStatus.PENDING, attr.lastModifiedTime());
             fileTreeCrawlerResults.add(result);
         }
         // Continue visiting other files in the tree

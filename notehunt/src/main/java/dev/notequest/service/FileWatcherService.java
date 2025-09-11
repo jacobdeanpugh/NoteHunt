@@ -1,18 +1,14 @@
 package dev.notequest.service;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.Thread;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
-import java.text.AttributedCharacterIterator.Attribute;
 import java.time.Instant;
-
-// Adds File Tree Tracking
-import com.sun.nio.file.ExtendedWatchEventModifier;
 
 import dev.notequest.events.*;
 import dev.notequest.handler.EventBusRegistry;
+import dev.notequest.service.FileResult.*;
 
 /**
  * FileWatcherService is a background thread that monitors a directory for file system changes.
@@ -128,10 +124,10 @@ public class FileWatcherService extends Thread {
                 for (WatchEvent<?> event : key.pollEvents()) {
                     Path full = dirPath.resolve(event.context().toString());
 
-                    FileResult fileResult = getFileResult(full);
+                    FileResult fileResult = getFileResultFromFileChange(full, event.kind());
 
                     if (fileIsInExtensionFilter(full.toString()))
-                        EventBusRegistry.bus().post(new FileChangeEvent(fileResult, event.kind()));
+                        EventBusRegistry.bus().post(new FileChangeEvent(fileResult));
                 }
                 
                 // Reset the key to continue receiving events
@@ -144,17 +140,22 @@ public class FileWatcherService extends Thread {
         }
     }
 
-    private FileResult getFileResult(Path filePath) {
+    private FileResult getFileResultFromFileChange(Path filePath, WatchEvent.Kind<?> kind) {
         FileResult fileResult;
 
         try {
-            FileTime lastModified = Files.getLastModifiedTime(filePath);
-            fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, lastModified);
 
-        } catch (FileNotFoundException e) {
-            // If a file is deleted then return the current time as last modfied
-            FileTime now = FileTime.from(Instant.now());
-            fileResult = new FileResult(filePath, FileResult.FileStatus.SUCCESS, now);
+            // File was deleted
+            if (kind.name().equals("ENTRY_DELETE")) {
+                FileTime lastModified = FileTime.from(Instant.now());
+                fileResult = new FileResult(filePath, FileStatus.DELETED, lastModified);
+
+                return fileResult;
+            }
+
+            // File is created or modifed
+            FileTime lastModified = Files.getLastModifiedTime(filePath);
+            fileResult = new FileResult(filePath, FileStatus.PENDING, lastModified);
 
         } catch (Exception e) {
             fileResult = new FileResult(filePath, FileResult.FileStatus.ERROR, e);

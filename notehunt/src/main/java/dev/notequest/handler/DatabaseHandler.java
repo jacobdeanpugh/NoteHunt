@@ -7,7 +7,6 @@ import com.google.common.eventbus.Subscribe;
 import dev.notequest.models.DatabaseQueries;
 import dev.notequest.service.FileResult;
 import dev.notequest.events.*;
-import java.util.ArrayList;
 
 import java.io.File;
 
@@ -113,15 +112,12 @@ public class DatabaseHandler {
 
         // Insert or update current files in the database
         // This ensures all currently existing files are properly tracked
-        insertFilesIntoTable(eventResults);
+        mergeFilesIntoTable(eventResults);
 
         // Find files that exist in database but not in current directory scan
         // These are files that have been deleted since the last crawl
-        String [] deletedFilesInDirectory = getDeletedFilesInDirectory(eventResults);
+        flagStaleFilesInDirectory(eventResults);
     
-        // Remove deleted files from database to maintain consistency
-        // Convert ArrayList to array for the method signature
-        markFilesAsDeleted(deletedFilesInDirectory);
     }
 
     /**
@@ -134,9 +130,8 @@ public class DatabaseHandler {
      * @param currentDirectoryFiles List of FileResult objects from current directory scan
      * @return ArrayList of file path hashes for files that should be removed from database
      */
-    private String[] getDeletedFilesInDirectory(FileResult[] currentDirectoryFiles) {
+    private void flagStaleFilesInDirectory(FileResult[] currentDirectoryFiles) {
         // List to store file path hashes of files that have been deleted
-        ArrayList<String> diffFilePathHashes = new ArrayList<String>();
         
         // Convert FileResult objects to array of file path hashes for SQL operation
         // We use hashes instead of full paths for efficiency and consistency
@@ -147,7 +142,7 @@ public class DatabaseHandler {
             currentDirectoryFilesPathHashes[i] = currentDirectoryFiles[i].getFilePathHash();
         }
 
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.GET_CURRENT_DIRECTORY_FILE_DIFF)) {
+        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.FLAG_STALE_FILES_IN_DIRECTORY)) {
             // Create SQL array from file path hashes for database query
             // This allows us to pass the entire array as a single parameter
             Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", currentDirectoryFilesPathHashes);
@@ -157,15 +152,7 @@ public class DatabaseHandler {
 
             // Execute query to find files in database but not in current directory
             // The query should return files that exist in DB but not in the provided array
-            try(ResultSet rs = ps.executeQuery()) {
-                // Process each file that exists in database but not in current directory
-                while (rs.next()) {
-                    // Add each deleted file's path hash to result list
-                    diffFilePathHashes.add(rs.getString("File_Path_Hash"));
-                }
-            }
-
-            return diffFilePathHashes.toArray(new String[0]);
+            ps.execute();
 
         } catch (SQLException e) {
             // Wrap SQL exception for consistent error handling
@@ -187,19 +174,17 @@ public class DatabaseHandler {
      * 
      * @param currentDirectoryFiles List of FileResult objects to insert/update in database
      */
-    private void insertFilesIntoTable(FileResult... currentDirectoryFiles) {
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.SYNC_FILE_STATUS_WITH_DIRECTORY)) {
+    private void mergeFilesIntoTable(FileResult... fileResults) {
+        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.STANDARD_MERGE_INTO_TABLE)) {
             // Process each file result and add to batch for efficient execution
-            for (FileResult fr: currentDirectoryFiles) {
+            for (FileResult fr: fileResults) {
                 // Convert FileResult's Instant to SQL Timestamp for database storage
                 Timestamp last_modified_timestamp = new Timestamp(fr.getLastModified().toMillis());
 
                 // Set parameters for prepared statement (index corresponds to SQL placeholders)
                 ps.setString(1, fr.getPath().toString());           // File path as string
                 ps.setString(2, fr.getFilePathHash());              // Hash for efficient lookups
-                ps.setString(3,                                     // Indexing status based on file processing result
-                    fr.getFileStatus() == FileResult.FileStatus.SUCCESS ?
-                    DatabaseQueries.IndexingStatus.PENDING : DatabaseQueries.IndexingStatus.ERROR);
+                ps.setString(3, fr.getFileStatus().toString());     // Indexing status based on file processing result
                 ps.setTimestamp(4, last_modified_timestamp);        // When file was last modified
                 ps.setString(5, fr.getExc().getMessage());          // Exception message (null if no error)
 
@@ -219,80 +204,7 @@ public class DatabaseHandler {
             throw new RuntimeException("An unexpected error occured updating current files status", e);
         }
     }
-
-    /**
-     * Marks files as deleted in the database instead of removing them completely.
-     * This approach maintains historical data while indicating the file is no longer present.
-     * 
-     * @param filePathHashes Variable number of file path hashes to mark as deleted
-     */
-    private void markFilesAsDeleted(String... filePathHashes) {
-        // Delegate to generic update method with specific SQL query
-        int count = preformUpdateOnFileRecords(DatabaseQueries.MARK_FILES_AS_DELETED, filePathHashes);
-
-        // Log the operation result for monitoring
-        System.out.println("Marked " + count + " files as deleted");
-    }
-
-    /**
-     * Marks files as pending for re-indexing in the database.
-     * This is typically called when files are modified and need to be processed again.
-     * The pending status indicates that the file content has changed and requires re-indexing.
-     * 
-     * @param filePathHashes Variable number of file path hashes to mark as pending
-     */
-    private void markFilesAsPending(String... filePathHashes) { 
-        // Delegate to generic update method with specific SQL query for pending status
-        int count = preformUpdateOnFileRecords(DatabaseQueries.MARK_FILES_AS_PENDING, filePathHashes);
-
-        // Log the operation result for monitoring and debugging
-        System.out.println("Marked " + count + " files as pending");
-    }
-
-    /**
-     * Removes files from the database using their file path hashes.
-     * Uses SQL array operations for efficient bulk deletion.
-     * This completely removes records, unlike markFilesAsDeleted which preserves them.
-     * 
-     * @param filePathHashes Variable number of file path hashes to remove from database
-     */
-    private void removeFilesFromTable(String... filePathHashes) {
-        // Delegate to generic update method with specific SQL query
-        int count = preformUpdateOnFileRecords(DatabaseQueries.REMOVE_FILES_FROM_TABLE, filePathHashes);
-
-        // Log the operation result for monitoring
-        System.out.println("Removed " + count + " rows.");
-    }
-
-    /**
-     * Generic method for performing update operations on the file records table.
-     * This method reduces code duplication between different update operations.
-     * 
-     * Uses SQL arrays to efficiently process multiple files in a single query.
-     * Supports various operations like marking files as deleted, pending, or removing them entirely.
-     * 
-     * @param databaseStatement The SQL statement to execute (with array parameter placeholder)
-     * @param filePathHashes Variable number of file path hashes to process
-     * @return Number of rows affected by the update operation
-     */
-    private int preformUpdateOnFileRecords(String databaseStatement, String... filePathHashes) {
-        try (PreparedStatement ps = conn.prepareStatement(databaseStatement)) {
-            // TODO: Update this function to take in a FileResult Object and update every field
-            // Create SQL array from file path hashes for batch processing
-            Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", filePathHashes);
-
-            // Set array parameter for the query (assumes first parameter is the array)
-            ps.setArray(1, SQLCompatibleArray);
-
-            // Execute update and return count of affected rows
-            return ps.executeUpdate();
-
-        } catch (SQLException e) {
-            // Wrap SQL exception for consistent error handling
-            throw new RuntimeException("An unexpected error occured removing rows from database", e);
-        }
-    }
-
+    
     /**
      * Event handler for FileChangeEvent.
      * This method is automatically called by the EventBus when individual file changes are detected.
@@ -309,25 +221,6 @@ public class DatabaseHandler {
     @Subscribe
     public void handleFileChangeEvent(FileChangeEvent event) {
         // Handle different file system events based on the type of change
-        switch(event.getKind().name()) {
-            case "ENTRY_CREATE" :
-                
-                insertFilesIntoTable(event.getFileResult());
-                break;
-
-            case "ENTRY_MODIFY" : 
-                // TODO: Add a new parameter for last modified
-                markFilesAsPending(event.getFileResult().getFilePathHash());
-                break;
-
-            case "ENTRY_DELETE" :
-                // Handle file deletion by removing it from database immediately
-                // This ensures database stays consistent even between full directory crawls
-                markFilesAsDeleted(event.getFileResult().getFilePathHash());
-                break;
-            default :
-                // Handle any unexpected event types gracefully by doing nothing
-                break;
-        }
+        mergeFilesIntoTable(event.getFileResult());
     }
 }

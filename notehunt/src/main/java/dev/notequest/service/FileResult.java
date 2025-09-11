@@ -21,9 +21,24 @@ public class FileResult {
          */
         public enum FileStatus {
             /** File was successfully visited and processed without errors */
-            SUCCESS,
+            PENDING,
+            IN_PROGRESS,
+            COMPLETE,
+            DELETED,
             /** An error occurred while attempting to visit or process the file */
-            ERROR
+            ERROR;
+
+            @Override
+            public String toString() {
+                switch (this) {
+                    case PENDING: return "Pending";
+                    case IN_PROGRESS: return "In_Progress";
+                    case COMPLETE: return "Completed";
+                    case DELETED: return "Deleted";
+                    case ERROR: return "Error";
+                    default: throw new IllegalArgumentException();
+                }
+            }
         }
         
         private Path filePath;          // The absolute or relative path to the file
@@ -44,6 +59,12 @@ public class FileResult {
             this.filePath = filePath;
             this.filePathHash = MD5Util.md5Hex(filePath.toString());
             this.fileStatus = fileStatus;
+            this.lastModified = lastModified;
+        }
+
+        public FileResult(Path filePath, FileTime lastModified) {
+            this.filePath = filePath;
+            this.filePathHash = MD5Util.md5Hex(filePath.toString());
             this.lastModified = lastModified;
         }
 
@@ -80,6 +101,10 @@ public class FileResult {
          */
         public FileStatus getFileStatus() { 
             return this.fileStatus; 
+        }
+
+        public void setFileStatus(FileStatus fs) {
+            this.fileStatus = fs;
         }
         
         /**
