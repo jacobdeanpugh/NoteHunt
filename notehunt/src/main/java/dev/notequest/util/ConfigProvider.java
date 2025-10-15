@@ -49,6 +49,6 @@ public class ConfigProvider {
     }
 
     public String getIndexPath() {
-        return indexPath;
+        return indexPath.replace("%APPDATA%", System.getenv("APPDATA"));
     }
 }
