@@ -102,4 +102,11 @@ public class DatabaseQueries {
                 File_Path_Hash = ANY(?)
             );
             """;
+    // SELECT Pending File
+    public final static String SELECT_PENDING_FILES = """
+            SELECT * FROM file_states
+            WHERE (
+                Status = 'Pending'
+            )
+            """;
 }

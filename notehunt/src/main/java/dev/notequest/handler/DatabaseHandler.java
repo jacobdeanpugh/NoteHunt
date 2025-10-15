@@ -6,9 +6,15 @@ import com.google.common.eventbus.Subscribe;
 
 import dev.notequest.models.DatabaseQueries;
 import dev.notequest.service.FileResult;
+import dev.notequest.service.FileResult.FileStatus;
 import dev.notequest.events.*;
 
 import java.io.File;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.util.ArrayList;
+
 
 /**
  * DatabaseHandler manages database operations for the NoteQuest application.
@@ -205,6 +211,27 @@ public class DatabaseHandler {
         }
     }
     
+    public ArrayList<FileResult> fetchPendingFiles() {
+        ArrayList<FileResult> results  = new ArrayList<FileResult>();
+
+        try(Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(DatabaseQueries.SELECT_PENDING_FILES);) {
+                while (rs.next()) {
+                    results.add(
+                       new FileResult(
+                            Paths.get(rs.getString("File_Path")),
+                            FileStatus.getStatusFromString(rs.getString("Status")),
+                            FileTime.from(rs.getTimestamp("Last_Modified").toInstant())
+                        )
+                    );
+                }
+        } catch (SQLException e) { 
+            e.printStackTrace();
+        }
+
+        return results;
+    }
+
     /**
      * Event handler for FileChangeEvent.
      * This method is automatically called by the EventBus when individual file changes are detected.

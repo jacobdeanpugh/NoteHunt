@@ -39,6 +39,23 @@ public class FileResult {
                     default: throw new IllegalArgumentException();
                 }
             }
+
+            public static FileStatus getStatusFromString(String s) {
+                switch (s) {
+                    case "Pending":
+                        return FileStatus.PENDING;
+                    case "In_Progress":
+                        return FileStatus.IN_PROGRESS;
+                    case "Complete":
+                        return FileStatus.COMPLETE;
+                    case "Deleted":
+                        return FileStatus.DELETED;
+                    case "Error":
+                    default:
+                        return FileStatus.ERROR;
+                }
+            }
+
         }
         
         private Path filePath;          // The absolute or relative path to the file
