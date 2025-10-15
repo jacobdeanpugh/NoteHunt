@@ -13,6 +13,6 @@ public class App
         DatabaseHandler dbHandler = new DatabaseHandler();
         EventBusRegistry.bus().register(dbHandler);
 
-        new FileWatcherService("C:\\Users\\jacob\\OneDrive\\Documents\\notestesting").start();
+        new FileWatcherService().start();
     }
 }

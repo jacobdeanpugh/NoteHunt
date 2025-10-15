@@ -9,6 +9,7 @@ import java.time.Instant;
 import dev.notequest.events.*;
 import dev.notequest.handler.EventBusRegistry;
 import dev.notequest.service.FileResult.*;
+import dev.notequest.util.ConfigProvider;
 
 /**
  * FileWatcherService is a background thread that monitors a directory for file system changes.
@@ -59,11 +60,11 @@ public class FileWatcherService extends Thread {
      * @throws RuntimeException if the WatchService cannot be initialized, the path is invalid,
      *                         or any other unexpected error occurs during setup
      */
-    public FileWatcherService(String directoryPath) {
+    public FileWatcherService() {
         super("file-watcher");
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
-            this.dirPath = Paths.get(directoryPath);
+            this.dirPath = Paths.get(ConfigProvider.instance.getDirectoryPath());
             
             // Register the directory with recursive monitoring enabled
             
