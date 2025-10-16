@@ -46,7 +46,10 @@ public class DatabaseQueries {
             )
             ON fs.File_Path_Hash = vals.File_Path_Hash
             WHEN MATCHED
-            AND vals.Last_Modified >= fs.Last_Modified
+            AND (
+                vals.Last_Modified > fs.Last_Modified OR
+                (fs.Last_Modified = vals.Last_Modified AND vals.Status <> 'Pending')
+            )
             THEN UPDATE SET
                 Status        = vals.Status,
                 Last_Modified = vals.Last_Modified,

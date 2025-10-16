@@ -7,10 +7,8 @@ import org.apache.lucene.store.*;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import dev.notequest.util.ConfigProvider;
 import dev.notequest.events.PendingFilesRequestEvent;
@@ -64,14 +62,14 @@ public class FileIndexer {
         }
     }    
 
-    public void indexFilesFromDatabase() {
+    public void indexFilesFromDatabase() throws IOException {
         ArrayList<FileResult> pendingFiles = requestPendingFiles();
 
         for (int i = 0; i < pendingFiles.size(); i += indexBatchSize) {
             SetFilesToCompleteEvent event = new SetFilesToCompleteEvent();
             int end_index = i + indexBatchSize;
 
-            end_index = end_index >= pendingFiles.size() ? pendingFiles.size() - 1 : i + indexBatchSize;
+            end_index = end_index >= pendingFiles.size() ? pendingFiles.size() : i + indexBatchSize;
             for(FileResult fr : pendingFiles.subList(i, end_index)){
                 try {
                     indexFile(fr.getPath());
@@ -80,7 +78,7 @@ public class FileIndexer {
                     e.printStackTrace();
                 }
             }
-            System.out.println("Index Count: " + i);
+            writer.commit();
             EventBusRegistry.bus().post(event);
         }
     }
