@@ -12,7 +12,6 @@ import dev.notequest.events.*;
 import java.io.File;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
-import java.time.Instant;
 import java.util.ArrayList;
 
 
@@ -210,7 +209,26 @@ public class DatabaseHandler {
             throw new RuntimeException("An unexpected error occured updating current files status", e);
         }
     }
-    
+
+    /**
+     * Event handler for FileChangeEvent.
+     * This method is automatically called by the EventBus when individual file changes are detected.
+     * 
+     * Handles different types of file system events:
+     * - ENTRY_CREATE: File was created (currently no action)
+     * - ENTRY_MODIFY: File was modified (marks file as pending)
+     * - ENTRY_DELETE: File was deleted (removes from database)
+     * 
+     * This provides real-time updates between directory crawls for immediate consistency.
+     * 
+     * @param event FileChangeEvent containing information about the changed file
+     */
+    @Subscribe
+    public void handleFileChangeEvent(FileChangeEvent event) {
+        // Handle different file system events based on the type of change
+        mergeFilesIntoTable(event.getFileResult());
+    }
+
     public ArrayList<FileResult> fetchPendingFiles() {
         ArrayList<FileResult> results  = new ArrayList<FileResult>();
 
@@ -232,22 +250,17 @@ public class DatabaseHandler {
         return results;
     }
 
-    /**
-     * Event handler for FileChangeEvent.
-     * This method is automatically called by the EventBus when individual file changes are detected.
-     * 
-     * Handles different types of file system events:
-     * - ENTRY_CREATE: File was created (currently no action)
-     * - ENTRY_MODIFY: File was modified (marks file as pending)
-     * - ENTRY_DELETE: File was deleted (removes from database)
-     * 
-     * This provides real-time updates between directory crawls for immediate consistency.
-     * 
-     * @param event FileChangeEvent containing information about the changed file
-     */
     @Subscribe
-    public void handleFileChangeEvent(FileChangeEvent event) {
-        // Handle different file system events based on the type of change
-        mergeFilesIntoTable(event.getFileResult());
+    public void handlePendingFilesRequest(PendingFilesRequestEvent event) {
+        System.out.println("Database Handler: Received request for pending files");
+
+        try {
+            ArrayList<FileResult> pendingFiles = fetchPendingFiles();
+
+            event.getFuture().complete(pendingFiles);
+        } catch (Exception e) {
+            event.getFuture().completeExceptionally(e);
+        }
     }
+
 }
