@@ -1,4 +1,5 @@
 {
     "directoryPath": "C:\\Users\\jacob\\Downloads\\20_newsgroups\\talk.politics.misc",
-    "indexPath": "%APPDATA%\\NoteQuest\\index\\"
+    "indexPath": "%APPDATA%\\NoteQuest\\index\\",
+    "indexBatchSize" : 50
 }

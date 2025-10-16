@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 
 import dev.notequest.util.ConfigProvider;
 import dev.notequest.events.PendingFilesRequestEvent;
+import dev.notequest.events.SetFilesToCompleteEvent;
 import dev.notequest.handler.EventBusRegistry;
 
 public class FileIndexer {
@@ -22,6 +23,7 @@ public class FileIndexer {
     private Directory indexDirectory;
     private IndexWriterConfig config;
     private IndexWriter writer;
+    private int indexBatchSize;
 
     public FileIndexer() {
         try {
@@ -30,26 +32,24 @@ public class FileIndexer {
             config = new IndexWriterConfig(analyzer);
             config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             writer = new IndexWriter(indexDirectory, config);
-            System.out.println(indexDirectory.toString());
+            indexBatchSize = ConfigProvider.instance.getIndexBatchSize();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void IndexFile(Path filePath) throws IOException {
-        System.out.println("Indexing File : " + filePath.toAbsolutePath());
+    public void indexFile(Path filePath) throws IOException {
         Document doc = new Document();
 
         doc.add(new StringField("path", filePath.toString(), Field.Store.YES));
 
         String content = Files.readString(filePath);
-        doc.add(new StringField("contents", content, Field.Store.YES));
+        doc.add(new TextField("contents", content, Field.Store.NO));
 
         writer.addDocument(doc);
     }
 
     public ArrayList<FileResult> requestPendingFiles() {
-        System.err.println("Requesting Files");
         CompletableFuture<ArrayList<FileResult>> replyFuture = new CompletableFuture<ArrayList<FileResult>> ();
         PendingFilesRequestEvent requestEvent = new PendingFilesRequestEvent(replyFuture);
 
@@ -64,4 +64,24 @@ public class FileIndexer {
         }
     }    
 
+    public void indexFilesFromDatabase() {
+        ArrayList<FileResult> pendingFiles = requestPendingFiles();
+
+        for (int i = 0; i < pendingFiles.size(); i += indexBatchSize) {
+            SetFilesToCompleteEvent event = new SetFilesToCompleteEvent();
+            int end_index = i + indexBatchSize;
+
+            end_index = end_index >= pendingFiles.size() ? pendingFiles.size() - 1 : i + indexBatchSize;
+            for(FileResult fr : pendingFiles.subList(i, end_index)){
+                try {
+                    indexFile(fr.getPath());
+                    event.addFileResult(fr);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("Index Count: " + i);
+            EventBusRegistry.bus().post(event);
+        }
+    }
 }

@@ -11,6 +11,7 @@ public class ConfigProvider {
     private static final String configResourcePath = "/dev/notequest/config.json";
     private String directoryPath;
     private String indexPath;
+    private int indexBatchSize;
 
     public static final ConfigProvider instance = new ConfigProvider();
 
@@ -36,6 +37,7 @@ public class ConfigProvider {
                 JSONObject jsonObject = (JSONObject) parser.parse(reader);
                 this.directoryPath = (String) jsonObject.get("directoryPath");
                 this.indexPath = (String) jsonObject.get("indexPath");
+                this.indexBatchSize = ((Long) jsonObject.get("indexBatchSize")).intValue();
             }
 
         } catch (Exception e) {
@@ -50,5 +52,9 @@ public class ConfigProvider {
 
     public String getIndexPath() {
         return indexPath.replace("%APPDATA%", System.getenv("APPDATA"));
+    }
+
+    public int getIndexBatchSize() {
+        return this.indexBatchSize;
     }
 }

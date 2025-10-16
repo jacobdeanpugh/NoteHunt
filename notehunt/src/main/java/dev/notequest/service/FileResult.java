@@ -33,7 +33,7 @@ public class FileResult {
                 switch (this) {
                     case PENDING: return "Pending";
                     case IN_PROGRESS: return "In_Progress";
-                    case COMPLETE: return "Completed";
+                    case COMPLETE: return "Complete";
                     case DELETED: return "Deleted";
                     case ERROR: return "Error";
                     default: throw new IllegalArgumentException();

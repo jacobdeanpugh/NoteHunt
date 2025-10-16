@@ -252,8 +252,6 @@ public class DatabaseHandler {
 
     @Subscribe
     public void handlePendingFilesRequest(PendingFilesRequestEvent event) {
-        System.out.println("Database Handler: Received request for pending files");
-
         try {
             ArrayList<FileResult> pendingFiles = fetchPendingFiles();
 
@@ -261,6 +259,11 @@ public class DatabaseHandler {
         } catch (Exception e) {
             event.getFuture().completeExceptionally(e);
         }
+    }
+
+    @Subscribe
+    public void handleSetFilesToCompleteEvent(SetFilesToCompleteEvent event) {
+        mergeFilesIntoTable(event.getCompletedFiles());
     }
 
 }
