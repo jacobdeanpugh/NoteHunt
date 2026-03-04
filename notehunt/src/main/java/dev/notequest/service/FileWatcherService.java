@@ -6,6 +6,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.*;
 import java.time.Instant;
 
+import com.google.common.eventbus.EventBus;
 import dev.notequest.events.*;
 import dev.notequest.handler.EventBusRegistry;
 import dev.notequest.service.FileResult.*;
@@ -28,6 +29,7 @@ public class FileWatcherService extends Thread {
     // Core service components
     private WatchService watchService;
     private Path dirPath;
+    private EventBus bus;
     
     /**
      * Standard file system events that the WatchService will monitor.
@@ -65,9 +67,10 @@ public class FileWatcherService extends Thread {
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
             this.dirPath = Paths.get(ConfigProvider.instance.getDirectoryPath());
-            
+            this.bus = bus;
+
             // Register the directory with recursive monitoring enabled
-            
+
             Files.walk(dirPath)
                 .filter(Files::isDirectory)
                 .forEach(path -> {
@@ -87,7 +90,33 @@ public class FileWatcherService extends Thread {
         }
     }
 
-    private Boolean fileIsInExtensionFilter(String path) {
+    /**
+     * Constructor for testing - accepts a directory path and EventBus.
+     * Allows tests to provide a temp directory and mock EventBus.
+     *
+     * @param dirPath Path to monitor
+     * @param bus EventBus for posting events
+     * @throws IOException if WatchService initialization fails
+     */
+    public FileWatcherService(Path dirPath, EventBus bus) throws IOException {
+        super("file-watcher");
+        this.watchService = FileSystems.getDefault().newWatchService();
+        this.dirPath = dirPath;
+        this.bus = bus;
+
+        // Register the directory with recursive monitoring enabled
+        Files.walk(dirPath)
+            .filter(Files::isDirectory)
+            .forEach(path -> {
+                try {
+                    path.register(watchService, STANDARD_WATCH_EVENT_KINDS);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to register directory: " + path, e);
+                }
+            });
+    }
+
+    Boolean fileIsInExtensionFilter(String path) {
         // If no extensions are specified, include all files (no filtering)
         if (FILE_EXTENSIONS.length < 1) {
             return true;
@@ -128,7 +157,7 @@ public class FileWatcherService extends Thread {
                     FileResult fileResult = getFileResultFromFileChange(full, event.kind());
 
                     if (fileIsInExtensionFilter(full.toString()))
-                        EventBusRegistry.bus().post(new FileChangeEvent(fileResult));
+                        bus.post(new FileChangeEvent(fileResult));
                 }
                 
                 // Reset the key to continue receiving events
@@ -141,7 +170,7 @@ public class FileWatcherService extends Thread {
         }
     }
 
-    private FileResult getFileResultFromFileChange(Path filePath, WatchEvent.Kind<?> kind) {
+    FileResult getFileResultFromFileChange(Path filePath, WatchEvent.Kind<?> kind) {
         FileResult fileResult;
 
         try {
@@ -180,7 +209,7 @@ public class FileWatcherService extends Thread {
         try {
             FileTreeCrawler fileTreeCrawler = new FileTreeCrawler(FILE_EXTENSIONS);
             Files.walkFileTree(this.dirPath, fileTreeCrawler);
-            EventBusRegistry.bus().post(new FileTreeCrawledEvent(fileTreeCrawler.getResults()));
+            bus.post(new FileTreeCrawledEvent(fileTreeCrawler.getResults()));
         } catch (Exception e) {
             throw new RuntimeException("An unexpected error occurred during file tree crawling", e);
         }

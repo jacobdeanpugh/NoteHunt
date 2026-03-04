@@ -1,38 +1,28 @@
 package dev.notequest;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+import dev.notequest.handler.EventBusRegistry;
 
 /**
- * Unit test for simple App.
+ * Basic smoke tests for the App.
  */
-public class AppTest 
-    extends TestCase
-{
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest( String testName )
-    {
-        super( testName );
+public class AppTest {
+
+    @Test
+    public void testEventBusRegistryIsNonNull() {
+        // Sanity test that EventBusRegistry is properly initialized
+        assertNotNull(EventBusRegistry.bus(), "EventBusRegistry.bus() should return non-null EventBus");
     }
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
-    {
-        return new TestSuite( AppTest.class );
-    }
-
-    /**
-     * Rigourous Test :-)
-     */
-    public void testApp()
-    {
-        assertTrue( true );
+    @Test
+    public void testDatabaseSchemaSetupDoesNotThrow() {
+        // Integration smoke test that database schema can be set up
+        // This verifies the database handler can initialize without errors
+        assertDoesNotThrow(() -> {
+            var dbHandler = new dev.notequest.handler.DatabaseHandler();
+            assertNotNull(dbHandler, "DatabaseHandler should be created successfully");
+        }, "Database schema setup should not throw exception");
     }
 }

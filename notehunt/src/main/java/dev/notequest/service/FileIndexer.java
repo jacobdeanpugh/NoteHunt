@@ -10,6 +10,7 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
+import com.google.common.eventbus.EventBus;
 import dev.notequest.util.ConfigProvider;
 import dev.notequest.events.PendingFilesRequestEvent;
 import dev.notequest.events.SetFilesToCompleteEvent;
@@ -22,6 +23,7 @@ public class FileIndexer {
     private IndexWriterConfig config;
     private IndexWriter writer;
     private int indexBatchSize;
+    private EventBus bus;
 
     public FileIndexer() {
         try {
@@ -31,9 +33,29 @@ public class FileIndexer {
             config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             writer = new IndexWriter(indexDirectory, config);
             indexBatchSize = ConfigProvider.instance.getIndexBatchSize();
+            bus = EventBusRegistry.bus();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Constructor for testing - accepts a Lucene Directory, batch size, and EventBus.
+     * Allows tests to provide an in-memory ByteBuffersDirectory and mock EventBus.
+     *
+     * @param directory Lucene Directory (e.g., ByteBuffersDirectory for RAM)
+     * @param batchSize Number of files to index per batch
+     * @param bus EventBus for posting events (can be mock)
+     * @throws IOException if IndexWriter initialization fails
+     */
+    public FileIndexer(Directory directory, int batchSize, EventBus bus) throws IOException {
+        analyzer = new StandardAnalyzer();
+        indexDirectory = directory;
+        config = new IndexWriterConfig(analyzer);
+        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+        writer = new IndexWriter(indexDirectory, config);
+        indexBatchSize = batchSize;
+        this.bus = bus;
     }
 
     public void indexFile(Path filePath) throws IOException {
@@ -51,7 +73,7 @@ public class FileIndexer {
         CompletableFuture<ArrayList<FileResult>> replyFuture = new CompletableFuture<ArrayList<FileResult>> ();
         PendingFilesRequestEvent requestEvent = new PendingFilesRequestEvent(replyFuture);
 
-        EventBusRegistry.bus().post(requestEvent);
+        bus.post(requestEvent);
 
         try {
              ArrayList<FileResult> results = replyFuture.get();
@@ -79,7 +101,7 @@ public class FileIndexer {
                 }
             }
             writer.commit();
-            EventBusRegistry.bus().post(event);
+            bus.post(event);
         }
     }
 }

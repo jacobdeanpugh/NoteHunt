@@ -39,7 +39,7 @@ public class DatabaseHandler {
     /**
      * Constructor initializes the database connection and sets up the schema.
      * Creates the data directory if it doesn't exist and establishes H2 database connection.
-     * 
+     *
      * @throws RuntimeException if database connection fails or directory creation is denied
      */
     public DatabaseHandler() {
@@ -47,12 +47,12 @@ public class DatabaseHandler {
             // Ensures the folder for database exists - creates ./data directory if missing
             // This is necessary because H2 won't create the directory structure automatically
             new File("./data").mkdirs();
-            
+
             // Establish connection to H2 database with embedded mode configuration:
             // - AUTO_SERVER=TRUE allows multiple connections to the same database
             // - DB_CLOSE_DELAY=-1 keeps the database open until JVM shutdown
             this.conn = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PSWD);
-            
+
             // Initialize database schema (tables, indexes, etc.)
             setupSchema();
         } catch (SQLException e) {
@@ -62,6 +62,18 @@ public class DatabaseHandler {
             // Handle case where file system permissions prevent directory creation
             throw new RuntimeException("Unable to create folder due to permissions", e);
         }
+    }
+
+    /**
+     * Constructor for testing - accepts an external database connection.
+     * This allows tests to provide an in-memory H2 database or other test double.
+     *
+     * @param conn Database connection for testing
+     * @throws RuntimeException if schema setup fails
+     */
+    public DatabaseHandler(Connection conn) {
+        this.conn = conn;
+        setupSchema();
     }
 
     /**
@@ -179,12 +191,15 @@ public class DatabaseHandler {
      * 
      * @param currentDirectoryFiles List of FileResult objects to insert/update in database
      */
-    private void mergeFilesIntoTable(FileResult... fileResults) {
+    void mergeFilesIntoTable(FileResult... fileResults) {
         try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.STANDARD_MERGE_INTO_TABLE)) {
             // Process each file result and add to batch for efficient execution
             for (FileResult fr: fileResults) {
                 // Convert FileResult's Instant to SQL Timestamp for database storage
-                Timestamp last_modified_timestamp = new Timestamp(fr.getLastModified().toMillis());
+                // Handle null lastModified for error cases by using current time
+                Timestamp last_modified_timestamp = fr.getLastModified() != null
+                    ? new Timestamp(fr.getLastModified().toMillis())
+                    : new Timestamp(System.currentTimeMillis());
 
                 // Set parameters for prepared statement (index corresponds to SQL placeholders)
                 ps.setString(1, fr.getPath().toString());           // File path as string

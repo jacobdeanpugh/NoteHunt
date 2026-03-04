@@ -19,6 +19,13 @@ public class ConfigProvider {
         loadConfig();
     }
 
+    // Package-private constructor for testing
+    ConfigProvider(String directoryPath, String indexPath, int indexBatchSize) {
+        this.directoryPath = directoryPath;
+        this.indexPath = indexPath;
+        this.indexBatchSize = indexBatchSize;
+    }
+
     private void loadConfig() {
         JSONParser parser = new JSONParser();
         
@@ -56,5 +63,10 @@ public class ConfigProvider {
 
     public int getIndexBatchSize() {
         return this.indexBatchSize;
+    }
+
+    // Factory method for tests
+    public static ConfigProvider forTesting(String dir, String indexPath, int batchSize) {
+        return new ConfigProvider(dir, indexPath, batchSize);
     }
 }
