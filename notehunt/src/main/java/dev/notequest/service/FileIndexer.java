@@ -16,7 +16,7 @@ import dev.notequest.events.PendingFilesRequestEvent;
 import dev.notequest.events.SetFilesToCompleteEvent;
 import dev.notequest.handler.EventBusRegistry;
 
-public class FileIndexer {
+public class FileIndexer implements AutoCloseable {
 
     private StandardAnalyzer analyzer;
     private Directory indexDirectory;
@@ -76,13 +76,19 @@ public class FileIndexer {
         bus.post(requestEvent);
 
         try {
-             ArrayList<FileResult> results = replyFuture.get();
+             ArrayList<FileResult> results = replyFuture.get(10, java.util.concurrent.TimeUnit.SECONDS);
              return results;
         } catch (Exception e) {
             e.printStackTrace();
             return new ArrayList<FileResult>();
         }
     }    
+
+    @Override
+    public void close() throws IOException {
+        writer.close();
+        indexDirectory.close();
+    }
 
     public void indexFilesFromDatabase() throws IOException {
         ArrayList<FileResult> pendingFiles = requestPendingFiles();

@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(export:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql",
+      "mcp__plugin_atlassian_atlassian__createJiraIssue",
+      "Bash(./mvnw test)",
+      "Bash(\"C:/Program Files/Eclipse Adoptium/jdk-21.0.6.7-hotspot/bin/java\" -version)",
+      "Bash(cmd.exe /c \"cd /d C:\\\\Repos\\\\Personal\\\\NoteHunt\\\\notehunt && mvn test 2>&1\")",
+      "Bash(/c/tools/maven/bin/mvn test)",
+      "Bash(cd /c/Repos/Personal/NoteHunt/.worktrees/filewatcher-fixes/notehunt && /c/tools/maven/bin/mvn test*)",
+      "Bash(/c/tools/maven/bin/mvn test -f /c/Repos/Personal/NoteHunt/.worktrees/filewatcher-fixes/notehunt/pom.xml)"
     ]
   }
 }

@@ -3,7 +3,6 @@ package dev.notequest.service;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -16,7 +15,6 @@ import com.google.common.eventbus.EventBus;
 import dev.notequest.events.PendingFilesRequestEvent;
 import dev.notequest.events.SetFilesToCompleteEvent;
 
-@Disabled("FileIndexerTest causes JVM crash - investigating memory/resource issues")
 public class FileIndexerTest {
 
     private FileIndexer indexer;
@@ -37,7 +35,9 @@ public class FileIndexerTest {
 
     @AfterEach
     public void tearDown() throws IOException {
-        // Clean up
+        // Close IndexWriter and Directory before deleting temp files
+        indexer.close();
+
         if (Files.exists(tempDir)) {
             Files.walk(tempDir)
                 .sorted(java.util.Comparator.reverseOrder())
@@ -90,15 +90,15 @@ public class FileIndexerTest {
 
     @Test
     public void testRequestPendingFilesPostsEvent() {
-        // Set up mock to capture the posted event
-        java.util.concurrent.CompletableFuture<java.util.ArrayList<FileResult>> future =
-            new java.util.concurrent.CompletableFuture<>();
-        future.complete(new java.util.ArrayList<>());
+        // Set up mock to complete the future when post() is called
+        doAnswer(invocation -> {
+            PendingFilesRequestEvent event = invocation.getArgument(0);
+            event.getFuture().complete(new java.util.ArrayList<>());
+            return null;
+        }).when(mockBus).post(any(PendingFilesRequestEvent.class));
 
-        // Call requestPendingFiles
         indexer.requestPendingFiles();
 
-        // Verify post was called with PendingFilesRequestEvent
         verify(mockBus).post(any(PendingFilesRequestEvent.class));
     }
 
