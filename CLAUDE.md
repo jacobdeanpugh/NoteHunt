@@ -6,7 +6,7 @@ NoteHunt is a Java full-text search service that monitors a directory, indexes `
 ```bash
 cd notehunt
 mvn clean package          # build shaded JAR
-mvn test                   # run tests (46/52 pass; 6 disabled in FileIndexerTest)
+mvn test                   # run tests (52/52 pass)
 java -cp target/notehunt-1.0-SNAPSHOT.jar dev.notequest.App  # run
 ```
 
@@ -42,12 +42,11 @@ LESSONS_LEARNED.md                      # agent-maintained issue/solution log
 - `indexBatchSize` — files per batch during indexing (default 50)
 
 ## Current Status
-**Done:** FileWatcher, FileTreeCrawler, DB schema, Lucene indexing, EventBus, config, tests (46/52)
+**Done:** FileWatcher, FileTreeCrawler, DB schema, Lucene indexing, EventBus, config, tests (52/52)
 **Next:** REST API → query engine → snippet extraction (see ROADMAP.md Phase 1)
 
 ## Known Pitfalls
 - FileWatcherService is disabled — do not enable without fixing single-JDBC-connection concurrency
-- FileIndexerTest is `@Disabled` due to JVM memory issues — do not re-enable without profiling
 - Windows paths use backslash; tests must account for `File.separator`
 - H2 in-memory test DBs need unique names to avoid data pollution between tests
 - `FileResult` with `ERROR` status may have `null` lastModified — null-check before use
