@@ -5,3 +5,6 @@ target/
 data/
 
 .vscode/
+
+# Git worktrees
+.worktrees/
