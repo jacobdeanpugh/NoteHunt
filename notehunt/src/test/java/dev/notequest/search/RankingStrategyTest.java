@@ -58,4 +58,12 @@ public class RankingStrategyTest {
         double boost = rankingStrategy.calculateBoost(null);
         assertEquals(1.0, boost, "Null lastModified should get 1.0x boost");
     }
+
+    @Test
+    public void testBoostForFutureDate() {
+        // File modified 1 day in the future
+        LocalDateTime tomorrow = LocalDateTime.now().plusDays(1);
+        double boost = rankingStrategy.calculateBoost(tomorrow);
+        assertEquals(1.0, boost, "Future-dated file should get no boost (1.0x)");
+    }
 }

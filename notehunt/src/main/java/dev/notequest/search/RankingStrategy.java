@@ -25,6 +25,11 @@ public class RankingStrategy {
 
         long daysElapsed = ChronoUnit.DAYS.between(lastModified, LocalDateTime.now());
 
+        // Handle future dates (negative daysElapsed) as no boost
+        if (daysElapsed < 0) {
+            return config.getDefaultMultiplier();
+        }
+
         if (daysElapsed <= config.getRecentDaysThreshold()) {
             return config.getRecentMultiplier();
         } else if (daysElapsed <= config.getWeekDaysThreshold()) {
