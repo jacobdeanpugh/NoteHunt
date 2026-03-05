@@ -58,19 +58,56 @@ public class ConfigProvider {
     }
 
     private void loadRankingConfig(JSONObject config) {
-        if (config.containsKey("ranking")) {
-            JSONObject rankingObj = (JSONObject) config.get("ranking");
-            JSONObject boostObj = (JSONObject) rankingObj.get("recencyBoost");
+        try {
+            if (config == null || !config.containsKey("ranking")) {
+                this.rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
+                return;
+            }
 
-            int recentDays = ((Number) boostObj.get("recentDaysThreshold")).intValue();
-            double recentMult = ((Number) boostObj.get("recentMultiplier")).doubleValue();
-            int weekDays = ((Number) boostObj.get("weekDaysThreshold")).intValue();
-            double weekMult = ((Number) boostObj.get("weekMultiplier")).doubleValue();
-            double defaultMult = ((Number) boostObj.get("defaultMultiplier")).doubleValue();
+            Object rankingObj = config.get("ranking");
+            if (!(rankingObj instanceof JSONObject)) {
+                this.rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
+                return;
+            }
+
+            Object boostObj = ((JSONObject) rankingObj).get("recencyBoost");
+            if (!(boostObj instanceof JSONObject)) {
+                this.rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
+                return;
+            }
+
+            JSONObject boost = (JSONObject) boostObj;
+
+            // Extract values with null checks and defaults
+            Object recentDaysObj = boost.get("recentDaysThreshold");
+            int recentDays = (recentDaysObj instanceof Number)
+                ? ((Number) recentDaysObj).intValue()
+                : 3;
+
+            Object recentMultObj = boost.get("recentMultiplier");
+            double recentMult = (recentMultObj instanceof Number)
+                ? ((Number) recentMultObj).doubleValue()
+                : 1.5;
+
+            Object weekDaysObj = boost.get("weekDaysThreshold");
+            int weekDays = (weekDaysObj instanceof Number)
+                ? ((Number) weekDaysObj).intValue()
+                : 7;
+
+            Object weekMultObj = boost.get("weekMultiplier");
+            double weekMult = (weekMultObj instanceof Number)
+                ? ((Number) weekMultObj).doubleValue()
+                : 1.2;
+
+            Object defaultMultObj = boost.get("defaultMultiplier");
+            double defaultMult = (defaultMultObj instanceof Number)
+                ? ((Number) defaultMultObj).doubleValue()
+                : 1.0;
 
             this.rankingConfig = new RankingConfig(recentDays, recentMult, weekDays, weekMult, defaultMult);
-        } else {
-            // Default config if not specified
+        } catch (Exception e) {
+            // Fall back to defaults on any error
+            System.err.println("Warning: Failed to parse ranking config, using defaults: " + e.getMessage());
             this.rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
         }
     }
