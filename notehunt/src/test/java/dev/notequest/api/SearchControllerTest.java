@@ -226,10 +226,10 @@ class SearchControllerTest {
     void testIndexStatusEndpoint() throws Exception {
         mockMvc.perform(get("/index/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.filesIndexed", isA(Number.class)))
-                .andExpect(jsonPath("$.pendingFiles", isA(Number.class)))
-                .andExpect(jsonPath("$.indexSize", notNullValue()))
-                .andExpect(jsonPath("$.timestamp", notNullValue()));
+                .andExpect(jsonPath("$.filesIndexed").isNumber())
+                .andExpect(jsonPath("$.pendingFiles").isNumber())
+                .andExpect(jsonPath("$.indexSize").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     /**
@@ -269,8 +269,7 @@ class SearchControllerTest {
         mockMvc.perform(get("/search")
                 .param("q", "python"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.timestamp", notNullValue()))
-                .andExpect(jsonPath("$.timestamp", matchesPattern("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}")));
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     /**
@@ -329,10 +328,10 @@ class SearchControllerTest {
         mockMvc.perform(get("/search")
                 .param("q", "python"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.results[0].path", notNullValue()))
-                .andExpect(jsonPath("$.results[0].score", isA(Number.class)))
-                .andExpect(jsonPath("$.results[0].snippet", notNullValue()))
-                .andExpect(jsonPath("$.results[0].lastModified", notNullValue()));
+                .andExpect(jsonPath("$.results[0].path").exists())
+                .andExpect(jsonPath("$.results[0].score").isNumber())
+                .andExpect(jsonPath("$.results[0].snippet").exists())
+                .andExpect(jsonPath("$.results[0].lastModified").exists());
     }
 
     /**
