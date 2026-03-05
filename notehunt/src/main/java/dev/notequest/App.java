@@ -1,25 +1,17 @@
 package dev.notequest;
-import dev.notequest.service.FileWatcherService;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import dev.notequest.handler.*;
-import dev.notequest.service.FileIndexer;;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Hello world!
- *
+ * NoteHunt - Full-text search service with Spring Boot
  */
-public class App 
-{
-    public static void main( String[] args )
-    {
-        DatabaseHandler dbHandler = new DatabaseHandler();
-        EventBusRegistry.bus().register(dbHandler);
+@SpringBootApplication
+public class App {
 
-        // new FileWatcherService().start();
-        System.err.println(new FileIndexer().requestPendingFiles());
+    public static void main(String[] args) throws Exception {
+        SpringApplication.run(App.class, args);
+        // App is now running as Spring Boot server
+        // Spring will auto-wire beans and start HTTP server on port 8080
     }
 }
