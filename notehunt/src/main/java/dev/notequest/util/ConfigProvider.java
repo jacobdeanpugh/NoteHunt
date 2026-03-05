@@ -1,5 +1,6 @@
 package dev.notequest.util;
 
+import dev.notequest.config.RankingConfig;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import java.io.InputStream;
@@ -12,6 +13,7 @@ public class ConfigProvider {
     private String directoryPath;
     private String indexPath;
     private int indexBatchSize;
+    private RankingConfig rankingConfig;
 
     public static final ConfigProvider instance = new ConfigProvider();
 
@@ -24,6 +26,7 @@ public class ConfigProvider {
         this.directoryPath = directoryPath;
         this.indexPath = indexPath;
         this.indexBatchSize = indexBatchSize;
+        this.rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0); // Default values
     }
 
     private void loadConfig() {
@@ -45,11 +48,30 @@ public class ConfigProvider {
                 this.directoryPath = (String) jsonObject.get("directoryPath");
                 this.indexPath = (String) jsonObject.get("indexPath");
                 this.indexBatchSize = ((Long) jsonObject.get("indexBatchSize")).intValue();
+                loadRankingConfig(jsonObject);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to load configuration from resource: " + configResourcePath, e);
+        }
+    }
+
+    private void loadRankingConfig(JSONObject config) {
+        if (config.containsKey("ranking")) {
+            JSONObject rankingObj = (JSONObject) config.get("ranking");
+            JSONObject boostObj = (JSONObject) rankingObj.get("recencyBoost");
+
+            int recentDays = ((Number) boostObj.get("recentDaysThreshold")).intValue();
+            double recentMult = ((Number) boostObj.get("recentMultiplier")).doubleValue();
+            int weekDays = ((Number) boostObj.get("weekDaysThreshold")).intValue();
+            double weekMult = ((Number) boostObj.get("weekMultiplier")).doubleValue();
+            double defaultMult = ((Number) boostObj.get("defaultMultiplier")).doubleValue();
+
+            this.rankingConfig = new RankingConfig(recentDays, recentMult, weekDays, weekMult, defaultMult);
+        } else {
+            // Default config if not specified
+            this.rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
         }
     }
 
@@ -63,6 +85,10 @@ public class ConfigProvider {
 
     public int getIndexBatchSize() {
         return this.indexBatchSize;
+    }
+
+    public RankingConfig getRankingConfig() {
+        return rankingConfig;
     }
 
     // Factory method for tests

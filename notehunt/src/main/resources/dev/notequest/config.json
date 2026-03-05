@@ -1,5 +1,14 @@
 {
     "directoryPath": "C:\\Users\\jacob\\Downloads\\20_newsgroups\\talk.politics.misc",
     "indexPath": "%APPDATA%\\NoteQuest\\index\\",
-    "indexBatchSize" : 50
+    "indexBatchSize" : 50,
+    "ranking": {
+        "recencyBoost": {
+            "recentDaysThreshold": 3,
+            "recentMultiplier": 1.5,
+            "weekDaysThreshold": 7,
+            "weekMultiplier": 1.2,
+            "defaultMultiplier": 1.0
+        }
+    }
 }
