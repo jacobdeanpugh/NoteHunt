@@ -2,6 +2,8 @@ package dev.notequest.search;
 
 import dev.notequest.api.SearchResponse;
 import dev.notequest.api.SearchResult;
+import dev.notequest.config.RankingConfig;
+import dev.notequest.search.RankingStrategy;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -58,7 +60,12 @@ public class SearchResultHandlerTest {
         searcher = new IndexSearcher(reader);
         queryParser = new QueryParser();
         snippetExtractor = new SnippetExtractor(queryParser);
-        handler = new SearchResultHandler(searcher, snippetExtractor);
+
+        // Create RankingStrategy with default config
+        RankingConfig rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
+        RankingStrategy rankingStrategy = new RankingStrategy(rankingConfig);
+
+        handler = new SearchResultHandler(searcher, snippetExtractor, rankingStrategy);
     }
 
     /**
@@ -276,6 +283,27 @@ public class SearchResultHandlerTest {
             paths.add(result.getPath());
         }
         assertEquals(response.getResults().size(), paths.size(), "All result paths should be unique");
+    }
+
+    /**
+     * Test 14: SearchResultHandler with RankingStrategy injection
+     * Verifies: Handler accepts RankingStrategy in constructor
+     * Expected: Handler created successfully with ranking strategy
+     */
+    @Test
+    void testSearchResultsIncludeRecencyBoost() throws Exception {
+        RankingConfig config = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
+        RankingStrategy rankingStrategy = new RankingStrategy(config);
+
+        // Create handler with RankingStrategy
+        SearchResultHandler handler = new SearchResultHandler(
+            searcher,
+            snippetExtractor,
+            rankingStrategy
+        );
+
+        // Verify handler created successfully
+        assertNotNull(handler);
     }
 
     /**

@@ -3,6 +3,8 @@ package dev.notequest.api;
 import dev.notequest.search.QueryParser;
 import dev.notequest.search.SearchResultHandler;
 import dev.notequest.search.SnippetExtractor;
+import dev.notequest.search.RankingStrategy;
+import dev.notequest.config.RankingConfig;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -90,7 +92,12 @@ public class SearchIntegrationTest {
         searcher = new IndexSearcher(reader);
         queryParser = new QueryParser();
         snippetExtractor = new SnippetExtractor(queryParser);
-        handler = new SearchResultHandler(searcher, snippetExtractor);
+
+        // Create RankingStrategy with default config
+        RankingConfig rankingConfig = new RankingConfig(3, 1.5, 7, 1.2, 1.0);
+        RankingStrategy rankingStrategy = new RankingStrategy(rankingConfig);
+
+        handler = new SearchResultHandler(searcher, snippetExtractor, rankingStrategy);
     }
 
     /**

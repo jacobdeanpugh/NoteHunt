@@ -13,16 +13,19 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import dev.notequest.search.RankingStrategy;
 
 public class SearchResultHandler {
 
     private final IndexSearcher searcher;
     private final SnippetExtractor snippetExtractor;
     private final QueryParser queryParser;
+    private final RankingStrategy rankingStrategy;
 
-    public SearchResultHandler(IndexSearcher searcher, SnippetExtractor snippetExtractor) {
+    public SearchResultHandler(IndexSearcher searcher, SnippetExtractor snippetExtractor, RankingStrategy rankingStrategy) {
         this.searcher = searcher;
         this.snippetExtractor = snippetExtractor;
+        this.rankingStrategy = rankingStrategy;
         this.queryParser = new QueryParser();
     }
 
@@ -85,14 +88,19 @@ public class SearchResultHandler {
     private SearchResult buildSearchResult(Document doc, float score, String queryString) throws Exception {
         String path = doc.get("path");
         String content = doc.get("contents");
+        LocalDateTime lastModified = getLastModified(doc);
 
         // Extract snippet with highlighting
         String snippet = snippetExtractor.extractSnippet(content != null ? content : "", queryString);
 
+        // Apply recency boost to score
+        double boost = rankingStrategy.calculateBoost(lastModified);
+        double boostedScore = score * boost;
+
         return SearchResult.builder()
                 .path(path)
-                .score((double) score)
-                .lastModified(getLastModified(doc))
+                .score(boostedScore)
+                .lastModified(lastModified)
                 .snippet(snippet)
                 .build();
     }
