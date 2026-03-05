@@ -10,7 +10,11 @@
       "Bash(cmd.exe /c \"cd /d C:\\\\Repos\\\\Personal\\\\NoteHunt\\\\notehunt && mvn test 2>&1\")",
       "Bash(/c/tools/maven/bin/mvn test)",
       "Bash(cd /c/Repos/Personal/NoteHunt/.worktrees/filewatcher-fixes/notehunt && /c/tools/maven/bin/mvn test*)",
-      "Bash(/c/tools/maven/bin/mvn test -f /c/Repos/Personal/NoteHunt/.worktrees/filewatcher-fixes/notehunt/pom.xml)"
+      "Bash(/c/tools/maven/bin/mvn test -f /c/Repos/Personal/NoteHunt/.worktrees/filewatcher-fixes/notehunt/pom.xml)",
+      "Bash(mvn clean:*)",
+      "Bash(git:*)",
+      "Bash(mvn compile:*)",
+      "Bash(mvn test:*)"
     ]
   }
 }

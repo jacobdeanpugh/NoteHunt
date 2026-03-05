@@ -2,11 +2,13 @@ package dev.notequest.search;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.queryparser.classic.ParseException;
 
 public class QueryParserTest {
 
     @Test
-    public void testParseSimpleWord() {
+    public void testParseSimpleWord() throws ParseException {
         // Test parsing a single word query
         String input = "python";
         QueryParser parser = new QueryParser();
@@ -18,7 +20,7 @@ public class QueryParserTest {
     }
 
     @Test
-    public void testParseMultipleWords() {
+    public void testParseMultipleWords() throws ParseException {
         // Test parsing multiple words - should create AND query
         String input = "machine learning";
         QueryParser parser = new QueryParser();
@@ -32,7 +34,7 @@ public class QueryParserTest {
     }
 
     @Test
-    public void testParseWithLeadingTrailingSpaces() {
+    public void testParseWithLeadingTrailingSpaces() throws ParseException {
         // Test parsing with leading and trailing whitespace
         String input = "  python  ";
         QueryParser parser = new QueryParser();
@@ -65,7 +67,7 @@ public class QueryParserTest {
     }
 
     @Test
-    public void testParseSpecialCharacters() {
+    public void testParseSpecialCharacters() throws ParseException {
         // Test parsing query with special characters
         String input = "hello-world";
         QueryParser parser = new QueryParser();
@@ -77,7 +79,7 @@ public class QueryParserTest {
     }
 
     @Test
-    public void testParseAccentedCharacters() {
+    public void testParseAccentedCharacters() throws ParseException {
         // Test parsing query with accented characters
         String input = "café";
         QueryParser parser = new QueryParser();
@@ -121,7 +123,7 @@ public class QueryParserTest {
     }
 
     @Test
-    public void testParseVeryLongQuery() {
+    public void testParseVeryLongQuery() throws ParseException {
         // Test parsing very long query string
         String input = "the quick brown fox jumps over the lazy dog and many other words to make it a very long query string";
         QueryParser parser = new QueryParser();
