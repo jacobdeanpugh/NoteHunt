@@ -30,6 +30,10 @@ Agent-maintained log. Append entries when you resolve an issue. Read this before
 **Issue:** Running FileIndexerTest with real Lucene IndexWriter against a large corpus exhausted heap space.
 **Solution:** Tests are `@Disabled` pending profiling. Use a small synthetic corpus (< 10 files) for unit tests; reserve large corpus for integration tests.
 
+### SearchResultHandler needs IndexSearcher from FileIndexer
+**Issue:** SearchConfiguration was passing null for IndexSearcher, causing NullPointerException at runtime when SearchResultHandler.executeSearch() tried to execute queries.
+**Solution:** Added getSearcher() method to FileIndexer that opens/manages a cached DirectoryReader and IndexSearcher. Created IndexConfiguration to register FileIndexer as a Spring bean. Updated SearchConfiguration to inject FileIndexer and obtain IndexSearcher from it. This ensures all components share the same index and searcher is properly cached/refreshed.
+
 ---
 
 ## Build / Maven

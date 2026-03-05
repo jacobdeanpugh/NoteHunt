@@ -3,15 +3,29 @@ package dev.notequest.config;
 import dev.notequest.search.SnippetExtractor;
 import dev.notequest.search.SearchResultHandler;
 import dev.notequest.search.RankingStrategy;
+import dev.notequest.service.FileIndexer;
+import dev.notequest.util.ConfigProvider;
+import org.apache.lucene.search.IndexSearcher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * Spring Boot configuration for search-related beans.
- * Provides dependency injection wiring for SnippetExtractor and SearchResultHandler.
+ * Provides dependency injection wiring for SnippetExtractor, SearchResultHandler, and IndexSearcher.
  */
 @Configuration
 public class SearchConfiguration {
+
+    /**
+     * Provide RankingConfig as Spring bean.
+     * RankingConfig is loaded from ConfigProvider singleton and contains ranking algorithm parameters.
+     *
+     * @return RankingConfig singleton bean from ConfigProvider
+     */
+    @Bean
+    public RankingConfig rankingConfig() {
+        return ConfigProvider.instance.getRankingConfig();
+    }
 
     /**
      * Provide SnippetExtractor as Spring bean.
@@ -37,21 +51,34 @@ public class SearchConfiguration {
     }
 
     /**
+     * Provide IndexSearcher as Spring bean.
+     * IndexSearcher is obtained from FileIndexer, which manages the Lucene index.
+     * The searcher is cached by FileIndexer and updated when the index changes.
+     *
+     * @param fileIndexer autowired FileIndexer bean
+     * @return IndexSearcher for querying the Lucene index
+     * @throws Exception if the IndexSearcher cannot be created
+     */
+    @Bean
+    public IndexSearcher indexSearcher(FileIndexer fileIndexer) throws Exception {
+        return fileIndexer.getSearcher();
+    }
+
+    /**
      * Provide SearchResultHandler as Spring bean.
      * SearchResultHandler executes search queries against Lucene index and formats results.
-     * Note: IndexSearcher will be injected later when FileIndexer is refactored to expose it as a bean.
+     * It requires an IndexSearcher (obtained from FileIndexer) to query the index.
      *
+     * @param indexSearcher autowired IndexSearcher bean (obtained from FileIndexer)
      * @param snippetExtractor autowired SnippetExtractor bean
      * @param rankingStrategy autowired RankingStrategy bean
      * @return SearchResultHandler singleton bean
      */
     @Bean
     public SearchResultHandler searchResultHandler(
+            IndexSearcher indexSearcher,
             SnippetExtractor snippetExtractor,
             RankingStrategy rankingStrategy) {
-        // Note: IndexSearcher will be injected when FileIndexer refactoring is complete
-        // For now, this provides the basic wiring - null IndexSearcher will fail at runtime
-        // until FileIndexer exposes IndexSearcher as a bean or via dependency injection
-        return new SearchResultHandler(null, snippetExtractor, rankingStrategy);
+        return new SearchResultHandler(indexSearcher, snippetExtractor, rankingStrategy);
     }
 }

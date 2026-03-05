@@ -4,6 +4,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.*;
+import org.apache.lucene.search.IndexSearcher;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -24,6 +25,8 @@ public class FileIndexer implements AutoCloseable {
     private IndexWriter writer;
     private int indexBatchSize;
     private EventBus bus;
+    private DirectoryReader cachedReader;
+    private IndexSearcher cachedSearcher;
 
     public FileIndexer() {
         try {
@@ -84,8 +87,61 @@ public class FileIndexer implements AutoCloseable {
         }
     }    
 
+    /**
+     * Get or create an IndexSearcher for the current Lucene index.
+     * The IndexSearcher is cached after first creation.
+     * Callers should NOT close the returned searcher; it is managed by FileIndexer.
+     *
+     * @return IndexSearcher for querying the index, or null if index cannot be opened
+     * @throws IOException if the index directory cannot be read
+     */
+    public IndexSearcher getSearcher() throws IOException {
+        // Commit any pending changes before opening reader
+        writer.commit();
+
+        // If we have a cached searcher, check if the underlying reader is still current
+        if (cachedSearcher != null && cachedReader != null) {
+            try {
+                DirectoryReader newReader = DirectoryReader.openIfChanged(cachedReader);
+                if (newReader == null) {
+                    // No changes, return existing searcher
+                    return cachedSearcher;
+                } else {
+                    // Index has changed, close old reader and create new searcher
+                    cachedReader.close();
+                    cachedReader = newReader;
+                    cachedSearcher = new IndexSearcher(cachedReader);
+                    return cachedSearcher;
+                }
+            } catch (IOException e) {
+                // If unable to check for changes, close cached and recreate
+                if (cachedReader != null) {
+                    try {
+                        cachedReader.close();
+                    } catch (IOException ignored) {
+                    }
+                }
+                cachedReader = DirectoryReader.open(indexDirectory);
+                cachedSearcher = new IndexSearcher(cachedReader);
+                return cachedSearcher;
+            }
+        }
+
+        // First time: create reader and searcher
+        cachedReader = DirectoryReader.open(indexDirectory);
+        cachedSearcher = new IndexSearcher(cachedReader);
+        return cachedSearcher;
+    }
+
     @Override
     public void close() throws IOException {
+        // Close cached reader if it exists (which also affects cached searcher)
+        if (cachedReader != null) {
+            cachedReader.close();
+            cachedReader = null;
+            cachedSearcher = null;
+        }
+
         writer.close();
         indexDirectory.close();
     }
