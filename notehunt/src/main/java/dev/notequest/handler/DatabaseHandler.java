@@ -103,12 +103,13 @@ public class DatabaseHandler {
         try {
             conn = getConnection();
             setupSchema(conn);
-            // Only close connection if it came from the pool (not test connection)
-            if (testConnection == null && conn != null) {
-                conn.close();
-            }
         } catch (SQLException e) {
             throw new RuntimeException("Error occurred setting up schema", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
     }
 
@@ -138,13 +139,19 @@ public class DatabaseHandler {
      * @throws RuntimeException if connection validity check fails
      */
     public void testDatabaseConnection() {
+        Connection conn = null;
         try {
             // Check if connection is valid with 0 second timeout
             // isValid(0) performs a simple connectivity test without waiting
-            Connection conn = getConnection();
+            conn = getConnection();
             System.out.println(conn.isValid(0) ? "Connection Valid" : "Connection Not Valid");
         } catch (SQLException e) {
-            throw new RuntimeException("Unable to establish connection to databse: ", e);
+            throw new RuntimeException("Unable to establish connection to database: ", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
     }
 
@@ -318,7 +325,7 @@ public class DatabaseHandler {
                 conn.close();
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error fetching pending files", e);
         }
 
         return results;
