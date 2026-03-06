@@ -84,10 +84,16 @@ public class SearchController {
     @GetMapping("/index/status")
     public ResponseEntity<IndexStatusResponse> indexStatus() {
         return ResponseEntity.ok(IndexStatusResponse.builder()
-                .filesIndexed(0)  // TODO: Get from DatabaseHandler
+                .completedFiles(0)  // TODO: Get from DatabaseHandler
                 .pendingFiles(0)  // TODO: Get from DatabaseHandler
+                .inProgressFiles(0)  // TODO: Get from DatabaseHandler
+                .errorFiles(0)  // TODO: Get from DatabaseHandler
+                .total(0)  // TODO: Calculate from status counts
+                .complete(0)  // TODO: Alias for completedFiles
+                .pending(0)  // TODO: Alias for pendingFiles
+                .error(0)  // TODO: Alias for errorFiles
                 .indexSize("0 MB")  // TODO: Calculate from index
-                .lastUpdated(LocalDateTime.now())
+                .lastSyncTime(LocalDateTime.now())  // TODO: Get from DatabaseHandler
                 .timestamp(LocalDateTime.now())
                 .build());
     }
