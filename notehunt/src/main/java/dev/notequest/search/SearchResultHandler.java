@@ -98,7 +98,7 @@ public class SearchResultHandler {
         double boostedScore = score * boost;
 
         return SearchResult.builder()
-                .path(path)
+                .filePath(path)
                 .score(boostedScore)
                 .lastModified(lastModified)
                 .snippet(snippet)
