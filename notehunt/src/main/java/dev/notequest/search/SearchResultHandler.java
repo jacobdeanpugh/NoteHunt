@@ -76,7 +76,7 @@ public class SearchResultHandler {
         // Build response
         return SearchResponse.builder()
                 .results(results)
-                .totalHits(totalHitsCount)
+                .totalResults(totalHitsCount)
                 .limit(limit)
                 .offset(offset)
                 .timestamp(LocalDateTime.now())

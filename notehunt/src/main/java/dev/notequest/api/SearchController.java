@@ -47,7 +47,7 @@ public class SearchController {
             // Execute search
             SearchResponse response = searchResultHandler.executeSearch(query.trim(), limit, offset);
 
-            log.info("Search executed: query='{}', results={}, totalHits={}", query, response.getResults().size(), response.getTotalHits());
+            log.info("Search executed: query='{}', results={}, totalResults={}", query, response.getResults().size(), response.getTotalResults());
 
             return ResponseEntity.ok(response);
 

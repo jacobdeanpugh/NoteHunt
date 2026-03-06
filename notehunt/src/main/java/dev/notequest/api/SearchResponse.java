@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 public class SearchResponse {
     private List<SearchResult> results;
-    private long totalHits;
+    private long totalResults;
     private int limit;
     private int offset;
     private LocalDateTime timestamp;
