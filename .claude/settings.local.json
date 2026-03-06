@@ -24,7 +24,10 @@
       "Bash(ls:*)",
       "Bash(unzip:*)",
       "Bash(jar tf:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm install:*)",
+      "Bash(README.md:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
