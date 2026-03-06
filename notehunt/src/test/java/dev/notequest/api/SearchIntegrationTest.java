@@ -8,6 +8,7 @@ import dev.notequest.config.RankingConfig;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
@@ -120,15 +121,15 @@ public class SearchIntegrationTest {
         assertNotNull(response.getTimestamp(), "Timestamp should be set");
 
         // Verify result count
-        assertEquals(2, response.getTotalHits(), "Should find 2 documents containing 'python'");
+        assertEquals(2, response.getTotalResults(), "Should find 2 documents containing 'python'");
         assertEquals(2, response.getResults().size(), "Results list should contain 2 items");
         assertEquals(10, response.getLimit(), "Limit should be 10");
         assertEquals(0, response.getOffset(), "Offset should be 0");
 
         // Verify each result has required fields
         for (SearchResult result : response.getResults()) {
-            assertNotNull(result.getPath(), "Result path should not be null");
-            assertTrue(result.getPath().contains("python"), "Path should contain 'python'");
+            assertNotNull(result.getFilePath(), "Result path should not be null");
+            assertTrue(result.getFilePath().contains("python"), "Path should contain 'python'");
             assertTrue(result.getScore() > 0, "Score should be positive");
             assertNotNull(result.getSnippet(), "Snippet should not be null");
             assertFalse(result.getSnippet().isEmpty(), "Snippet should not be empty");
@@ -155,17 +156,17 @@ public class SearchIntegrationTest {
         SearchResponse page2 = handler.executeSearch("language", 1, 1);
 
         // Verify both pages report same total hits
-        assertEquals(page1.getTotalHits(), page2.getTotalHits(),
+        assertEquals(page1.getTotalResults(), page2.getTotalResults(),
                 "Page 1 and Page 2 should report same totalHits");
-        assertTrue(page1.getTotalHits() >= 2, "Should have at least 2 results for pagination test");
+        assertTrue(page1.getTotalResults() >= 2, "Should have at least 2 results for pagination test");
 
         // Verify each page has exactly 1 result
         assertEquals(1, page1.getResults().size(), "Page 1 should have 1 result");
         assertEquals(1, page2.getResults().size(), "Page 2 should have 1 result");
 
         // Verify results are different
-        String page1Path = page1.getResults().get(0).getPath();
-        String page2Path = page2.getResults().get(0).getPath();
+        String page1Path = page1.getResults().get(0).getFilePath();
+        String page2Path = page2.getResults().get(0).getFilePath();
         assertNotEquals(page1Path, page2Path, "Page 1 and Page 2 should have different results");
 
         // Verify pagination metadata is correct
@@ -188,7 +189,7 @@ public class SearchIntegrationTest {
     void testSnippetExtraction() throws Exception {
         SearchResponse response = handler.executeSearch("enterprise", 10, 0);
 
-        assertTrue(response.getTotalHits() > 0, "Should find results for 'enterprise'");
+        assertTrue(response.getTotalResults() > 0, "Should find results for 'enterprise'");
         assertFalse(response.getResults().isEmpty(), "Results list should not be empty");
 
         // Check first result
@@ -220,7 +221,7 @@ public class SearchIntegrationTest {
         SearchResponse response = handler.executeSearch("typescript", 10, 0);
 
         assertNotNull(response, "SearchResponse should not be null even with no results");
-        assertEquals(0, response.getTotalHits(), "TotalHits should be 0");
+        assertEquals(0, response.getTotalResults(), "TotalHits should be 0");
         assertEquals(0, response.getResults().size(), "Results list should be empty");
         assertEquals(10, response.getLimit(), "Limit should still be 10");
         assertEquals(0, response.getOffset(), "Offset should still be 0");
@@ -241,7 +242,7 @@ public class SearchIntegrationTest {
         SearchResponse response = handler.executeSearch("Python features", 10, 0);
 
         // Should find docs with "Python" and/or "features"
-        assertTrue(response.getTotalHits() > 0, "Should find results for multi-word query");
+        assertTrue(response.getTotalResults() > 0, "Should find results for multi-word query");
         assertTrue(response.getResults().size() > 0, "Results list should not be empty");
 
         // Verify we get results that match the query
@@ -280,7 +281,7 @@ public class SearchIntegrationTest {
         // Find the result from java-tutorial.txt
         SearchResult javaResult = null;
         for (SearchResult result : response.getResults()) {
-            if (result.getPath().contains("java")) {
+            if (result.getFilePath().contains("java")) {
                 javaResult = result;
                 break;
             }
@@ -312,7 +313,7 @@ public class SearchIntegrationTest {
         SearchResponse uppercaseResponse = handler.executeSearch("JAVA", 10, 0);
 
         // Both should find the same number of results
-        assertEquals(lowercaseResponse.getTotalHits(), uppercaseResponse.getTotalHits(),
+        assertEquals(lowercaseResponse.getTotalResults(), uppercaseResponse.getTotalResults(),
                 "Search should be case-insensitive");
         assertEquals(lowercaseResponse.getResults().size(), uppercaseResponse.getResults().size(),
                 "Lowercase and uppercase queries should return same number of results");
@@ -358,7 +359,7 @@ public class SearchIntegrationTest {
         // Search in the python-advanced.txt which has long content
         SearchResponse response = handler.executeSearch("Metaclasses", 10, 0);
 
-        assertTrue(response.getTotalHits() > 0, "Should find 'Metaclasses' in long documents");
+        assertTrue(response.getTotalResults() > 0, "Should find 'Metaclasses' in long documents");
 
         SearchResult result = response.getResults().get(0);
         String snippet = result.getSnippet();
@@ -382,7 +383,7 @@ public class SearchIntegrationTest {
         SearchResponse response = handler.executeSearch("python", 10, 10);
 
         // Should still report correct total hits
-        assertEquals(2, response.getTotalHits(), "TotalHits should be 2");
+        assertEquals(2, response.getTotalResults(), "TotalHits should be 2");
 
         // But results should be empty due to offset
         assertEquals(0, response.getResults().size(), "Results should be empty when offset > totalHits");
@@ -422,20 +423,20 @@ public class SearchIntegrationTest {
     void testMultipleDocumentsMatching() throws Exception {
         SearchResponse response = handler.executeSearch("language", 10, 0);
 
-        assertTrue(response.getTotalHits() > 1, "Should match multiple documents");
+        assertTrue(response.getTotalResults() > 1, "Should match multiple documents");
         assertTrue(response.getResults().size() > 1, "Should return multiple results");
 
         // Verify all paths are unique
         java.util.Set<String> uniquePaths = new java.util.HashSet<>();
         for (SearchResult result : response.getResults()) {
-            uniquePaths.add(result.getPath());
+            uniquePaths.add(result.getFilePath());
         }
         assertEquals(response.getResults().size(), uniquePaths.size(),
                 "All results should have unique paths");
 
         // Verify each result has valid content
         for (SearchResult result : response.getResults()) {
-            assertNotNull(result.getPath(), "Path should not be null");
+            assertNotNull(result.getFilePath(), "Path should not be null");
             assertTrue(result.getScore() > 0, "Score should be positive");
             assertFalse(result.getSnippet().isEmpty(), "Snippet should not be empty");
         }
@@ -454,7 +455,7 @@ public class SearchIntegrationTest {
     void testSnippetContextAroundMatch() throws Exception {
         SearchResponse response = handler.executeSearch("scalable", 10, 0);
 
-        assertTrue(response.getTotalHits() > 0, "Should find 'scalable'");
+        assertTrue(response.getTotalResults() > 0, "Should find 'scalable'");
 
         SearchResult result = response.getResults().get(0);
         String snippet = result.getSnippet();
@@ -493,21 +494,21 @@ public class SearchIntegrationTest {
         SearchResponse initialSearch = handler.executeSearch("programming", 2, 0);
 
         // Verify initial search
-        assertTrue(initialSearch.getTotalHits() > 0, "Should find results");
+        assertTrue(initialSearch.getTotalResults() > 0, "Should find results");
         assertTrue(initialSearch.getResults().size() <= 2, "Should respect limit");
 
         // User navigates to next page
-        if (initialSearch.getTotalHits() > 2) {
+        if (initialSearch.getTotalResults() > 2) {
             SearchResponse nextPage = handler.executeSearch("programming", 2, 2);
 
             // Verify next page has same totalHits
-            assertEquals(initialSearch.getTotalHits(), nextPage.getTotalHits(),
+            assertEquals(initialSearch.getTotalResults(), nextPage.getTotalResults(),
                     "TotalHits should be consistent across pages");
 
             // Verify results are different
             if (!initialSearch.getResults().isEmpty() && !nextPage.getResults().isEmpty()) {
-                String firstPageFirstPath = initialSearch.getResults().get(0).getPath();
-                String secondPageFirstPath = nextPage.getResults().get(0).getPath();
+                String firstPageFirstPath = initialSearch.getResults().get(0).getFilePath();
+                String secondPageFirstPath = nextPage.getResults().get(0).getFilePath();
                 assertNotEquals(firstPageFirstPath, secondPageFirstPath,
                         "Different pages should have different results");
             }
@@ -515,7 +516,7 @@ public class SearchIntegrationTest {
 
         // Verify all results have complete information
         for (SearchResult result : initialSearch.getResults()) {
-            assertNotNull(result.getPath(), "Result should have path");
+            assertNotNull(result.getFilePath(), "Result should have path");
             assertNotNull(result.getSnippet(), "Result should have snippet");
             assertTrue(result.getScore() > 0, "Result should have score");
             assertNotNull(result.getLastModified(), "Result should have lastModified");
@@ -536,7 +537,7 @@ public class SearchIntegrationTest {
         SearchResponse response = handler.executeSearch("modifications", 10, 0);
 
         // If nothing found with this word, try another
-        if (response.getTotalHits() == 0) {
+        if (response.getTotalResults() == 0) {
             response = handler.executeSearch("standard", 10, 0);
         }
 
@@ -557,6 +558,8 @@ public class SearchIntegrationTest {
         Document doc = new Document();
         doc.add(new StringField("path", path, Field.Store.YES));
         doc.add(new TextField("contents", content, Field.Store.YES));
+        doc.add(new LongField("fileSize", 1024L, Field.Store.YES));
+        doc.add(new LongField("lastModified", System.currentTimeMillis(), Field.Store.YES));
         writer.addDocument(doc);
     }
 }

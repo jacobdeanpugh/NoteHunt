@@ -7,6 +7,7 @@ import dev.notequest.search.RankingStrategy;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
@@ -80,7 +81,7 @@ public class SearchResultHandlerTest {
 
         // Verify results
         assertNotNull(response, "SearchResponse should not be null");
-        assertEquals(2, response.getTotalHits(), "Should find 2 documents containing 'python'");
+        assertEquals(2, response.getTotalResults(), "Should find 2 documents containing 'python'");
         assertEquals(2, response.getResults().size(), "Results list should contain 2 items");
         assertEquals(10, response.getLimit(), "Limit should be 10");
         assertEquals(0, response.getOffset(), "Offset should be 0");
@@ -100,7 +101,7 @@ public class SearchResultHandlerTest {
 
         // Verify no results
         assertNotNull(response, "SearchResponse should not be null");
-        assertEquals(0, response.getTotalHits(), "Should find 0 documents");
+        assertEquals(0, response.getTotalResults(), "Should find 0 documents");
         assertEquals(0, response.getResults().size(), "Results list should be empty");
         assertEquals(10, response.getLimit(), "Limit should be 10");
         assertEquals(0, response.getOffset(), "Offset should be 0");
@@ -122,16 +123,16 @@ public class SearchResultHandlerTest {
         SearchResponse page2 = handler.executeSearch("python", 1, 1);
 
         // Verify both pages report same total hits
-        assertEquals(2, page1.getTotalHits(), "Page 1 totalHits should be 2");
-        assertEquals(2, page2.getTotalHits(), "Page 2 totalHits should be 2");
+        assertEquals(2, page1.getTotalResults(), "Page 1 totalHits should be 2");
+        assertEquals(2, page2.getTotalResults(), "Page 2 totalHits should be 2");
 
         // Verify each page has 1 result
         assertEquals(1, page1.getResults().size(), "Page 1 should have 1 result");
         assertEquals(1, page2.getResults().size(), "Page 2 should have 1 result");
 
         // Verify results are different
-        String page1Path = page1.getResults().get(0).getPath();
-        String page2Path = page2.getResults().get(0).getPath();
+        String page1Path = page1.getResults().get(0).getFilePath();
+        String page2Path = page2.getResults().get(0).getFilePath();
         assertNotEquals(page1Path, page2Path, "Page 1 and Page 2 should have different results");
     }
 
@@ -169,8 +170,8 @@ public class SearchResultHandlerTest {
         assertFalse(response.getResults().isEmpty(), "Results should not be empty");
 
         for (SearchResult result : response.getResults()) {
-            assertNotNull(result.getPath(), "Result path should not be null");
-            assertTrue(result.getPath().contains("python"), "Path should contain 'python'");
+            assertNotNull(result.getFilePath(), "Result path should not be null");
+            assertTrue(result.getFilePath().contains("python"), "Path should contain 'python'");
         }
     }
 
@@ -245,7 +246,7 @@ public class SearchResultHandlerTest {
     void testExecuteSearchPaginationOffsetBeyondResults() throws Exception {
         SearchResponse response = handler.executeSearch("python", 10, 10);
 
-        assertEquals(2, response.getTotalHits(), "TotalHits should be 2");
+        assertEquals(2, response.getTotalResults(), "TotalHits should be 2");
         assertEquals(0, response.getResults().size(), "Results should be empty when offset is beyond total");
         assertEquals(10, response.getLimit(), "Limit should be 10");
         assertEquals(10, response.getOffset(), "Offset should be 10");
@@ -274,13 +275,13 @@ public class SearchResultHandlerTest {
     void testExecuteSearchMultipleMatches() throws Exception {
         SearchResponse response = handler.executeSearch("is", 10, 0);
 
-        assertTrue(response.getTotalHits() > 1, "Should find multiple documents containing 'is'");
+        assertTrue(response.getTotalResults() > 1, "Should find multiple documents containing 'is'");
         assertTrue(response.getResults().size() > 1, "Should return multiple results");
 
         // Verify all results have unique paths
         java.util.Set<String> paths = new java.util.HashSet<>();
         for (SearchResult result : response.getResults()) {
-            paths.add(result.getPath());
+            paths.add(result.getFilePath());
         }
         assertEquals(response.getResults().size(), paths.size(), "All result paths should be unique");
     }
@@ -316,6 +317,8 @@ public class SearchResultHandlerTest {
         Document doc = new Document();
         doc.add(new StringField("path", path, Field.Store.YES));
         doc.add(new TextField("contents", content, Field.Store.YES));
+        doc.add(new LongField("fileSize", 1024L, Field.Store.YES));
+        doc.add(new LongField("lastModified", System.currentTimeMillis(), Field.Store.YES));
         writer.addDocument(doc);
     }
 }
