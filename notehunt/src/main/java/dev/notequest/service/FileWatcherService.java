@@ -279,7 +279,7 @@ public class FileWatcherService extends Thread {
      */
     public void close() throws IOException {
         try {
-            if (watchService != null && !watchService.isClosed()) {
+            if (watchService != null) {
                 watchService.close();
                 System.out.println("FileWatcherService closed successfully");
             }
