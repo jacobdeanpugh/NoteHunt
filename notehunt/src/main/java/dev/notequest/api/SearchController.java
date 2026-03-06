@@ -1,5 +1,6 @@
 package dev.notequest.api;
 
+import dev.notequest.handler.DatabaseHandler;
 import dev.notequest.search.SearchResultHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 public class SearchController {
 
     private final SearchResultHandler searchResultHandler;
+    private final DatabaseHandler databaseHandler;
 
     /**
      * Search endpoint: GET /search?q=<query>&limit=10&offset=0
@@ -83,17 +86,27 @@ public class SearchController {
      */
     @GetMapping("/index/status")
     public ResponseEntity<IndexStatusResponse> indexStatus() {
+        Map<String, Long> statusCounts = databaseHandler.getStatusCounts();
+
+        long completedFiles = statusCounts.getOrDefault("Complete", 0L);
+        long pendingFiles = statusCounts.getOrDefault("Pending", 0L);
+        long inProgressFiles = statusCounts.getOrDefault("In_Progress", 0L);
+        long errorFiles = statusCounts.getOrDefault("Error", 0L);
+        long totalFiles = completedFiles + pendingFiles + inProgressFiles + errorFiles;
+
+        LocalDateTime lastSyncTime = databaseHandler.getLastSyncTime();
+
         return ResponseEntity.ok(IndexStatusResponse.builder()
-                .completedFiles(0)  // TODO: Get from DatabaseHandler
-                .pendingFiles(0)  // TODO: Get from DatabaseHandler
-                .inProgressFiles(0)  // TODO: Get from DatabaseHandler
-                .errorFiles(0)  // TODO: Get from DatabaseHandler
-                .total(0)  // TODO: Calculate from status counts
-                .complete(0)  // TODO: Alias for completedFiles
-                .pending(0)  // TODO: Alias for pendingFiles
-                .error(0)  // TODO: Alias for errorFiles
+                .completedFiles((int) completedFiles)
+                .pendingFiles((int) pendingFiles)
+                .inProgressFiles((int) inProgressFiles)
+                .errorFiles((int) errorFiles)
+                .total((int) totalFiles)
+                .complete((int) completedFiles)
+                .pending((int) pendingFiles)
+                .error((int) errorFiles)
                 .indexSize("0 MB")  // TODO: Calculate from index
-                .lastSyncTime(LocalDateTime.now())  // TODO: Get from DatabaseHandler
+                .lastSyncTime(lastSyncTime)
                 .timestamp(LocalDateTime.now())
                 .build());
     }
