@@ -20,18 +20,20 @@ export default function Pagination({
       <button
         onClick={handlePrev}
         disabled={currentPage === 1}
+        aria-label="Go to previous page"
         className="hover:text-text-body disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         ← Prev
       </button>
 
-      <span>
+      <span aria-live="polite">
         Page {currentPage} of {totalPages}
       </span>
 
       <button
         onClick={handleNext}
         disabled={currentPage === totalPages}
+        aria-label="Go to next page"
         className="hover:text-text-body disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         Next →
