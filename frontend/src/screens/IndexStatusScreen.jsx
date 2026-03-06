@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Card from '../components/ui/Card'
 import FileTable from '../components/FileTable'
 import Pagination from '../components/Pagination'
@@ -31,6 +31,7 @@ export default function IndexStatusScreen() {
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const isInitialLoad = useRef(true)
 
   useEffect(() => {
     fetchStatus()
@@ -40,15 +41,20 @@ export default function IndexStatusScreen() {
 
   const fetchStatus = async () => {
     try {
-      setLoading(true)
+      if (isInitialLoad.current) {
+        setLoading(true)
+      }
       const data = await getIndexStatus()
       setIndexStatus(data)
       setError(null)
+      isInitialLoad.current = false
     } catch (err) {
       console.error('Failed to fetch status:', err)
       setError('Failed to load index status')
     } finally {
-      setLoading(false)
+      if (isInitialLoad.current) {
+        setLoading(false)
+      }
     }
   }
 

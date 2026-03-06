@@ -90,14 +90,23 @@ private static volatile HikariDataSource instance;
 **Key Learning:** Double-checked locking in Java requires `volatile` on the instance variable for memory visibility guarantees. This is a subtle but critical concurrency pattern that's easy to miss.
 
 ### Connection cleanup requires finally blocks
-**Issue:** Several DatabaseHandler methods obtained connections from the pool but didn't close them on exception paths. In testDatabaseConnection(), setupSchema(), and other methods, if an exception occurred after getConnection() but before the explicit close, the connection was leaked back to the pool (still open).
+**Issue:** HikariCP connection pool exhaustion (timeout after 30 seconds, all 10 connections active, 0 idle). Root cause: 5 DatabaseHandler methods acquired connections but never returned them on exception paths:
+- `getStatusCounts()` - called by `/index/status` REST endpoint (repeated by frontend)
+- `getLastSyncTime()` - also called by `/index/status`
+- `fetchPendingFiles()` - called during file indexing
+- `mergeFilesIntoTable()` - called for file state updates
+- `flagStaleFilesInDirectory()` - called during directory crawl
 
-**Solution:** Added finally blocks to ensure connections are always closed:
+If any threw SQLException, the connection leaked indefinitely. Multiple concurrent HTTP requests quickly exhausted the 10-connection pool.
+
+**Solution:** Added finally blocks to all 5 methods to guarantee connection cleanup:
 ```java
 Connection conn = null;
 try {
     conn = getConnection();
     // operation here
+} catch (SQLException e) {
+    throw new RuntimeException(..., e);
 } finally {
     if (testConnection == null && conn != null) {
         try { conn.close(); } catch (SQLException ignored) {}
@@ -105,8 +114,8 @@ try {
 }
 ```
 
-Also standardized exception handling to throw RuntimeException with wrapped causes instead of using e.printStackTrace() (which silently fails).
+Verified: testDatabaseConnection() and setupSchema() already had finally blocks and worked correctly; all 5 vulnerable methods now fixed.
 
-**Key Learning:** Connection cleanup must be in finally blocks or try-with-resources, not in try or catch blocks. This is especially critical with connection pooling where leaked connections exhaust the pool.
+**Key Learning:** Connection cleanup must be in finally blocks or try-with-resources, not in try or catch blocks. This is especially critical with connection pooling where leaked connections exhaust the pool and cause cascading timeouts.
 
 ---

@@ -45,10 +45,11 @@ public class FileWatcherService extends Thread {
     
     /**
      * Supported file extensions that the service will process.
-     * Currently configured to monitor only text files (.txt).
+     * Currently configured to monitor Markdown (.md) and text files (.txt).
      * Additional extensions can be added to expand monitoring scope.
      */
     public static final String[] FILE_EXTENSIONS = {
+        FileTreeCrawler.FileExtention.MD,
         FileTreeCrawler.FileExtention.TXT
     };
     

@@ -218,13 +218,14 @@ public class DatabaseHandler {
                 // The query should return files that exist in DB but not in the provided array
                 ps.execute();
             }
-            // Only close connection if it came from the pool (not test connection)
-            if (testConnection == null && conn != null) {
-                conn.close();
-            }
         } catch (SQLException e) {
             // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured getting current directory file difference", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
     }
 
@@ -273,13 +274,14 @@ public class DatabaseHandler {
                 // Log the number of records processed for monitoring
                 System.out.println("Upserted " + counts.length + " rows.");
             }
-            // Only close connection if it came from the pool (not test connection)
-            if (testConnection == null && conn != null) {
-                conn.close();
-            }
         } catch (SQLException e) {
             // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured updating current files status", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
     }
 
@@ -320,12 +322,13 @@ public class DatabaseHandler {
                         );
                     }
             }
-            // Only close connection if it came from the pool (not test connection)
-            if (testConnection == null && conn != null) {
-                conn.close();
-            }
         } catch (SQLException e) {
             throw new RuntimeException("Error fetching pending files", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
 
         return results;
@@ -366,12 +369,13 @@ public class DatabaseHandler {
                     counts.put(rs.getString("Status"), rs.getLong("cnt"));
                 }
             }
-            // Only close connection if it came from the pool (not test connection)
-            if (testConnection == null && conn != null) {
-                conn.close();
-            }
         } catch (SQLException e) {
             throw new RuntimeException("Error fetching status counts", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
         return counts;
     }
@@ -398,12 +402,13 @@ public class DatabaseHandler {
                     }
                 }
             }
-            // Only close connection if it came from the pool (not test connection)
-            if (testConnection == null && conn != null) {
-                conn.close();
-            }
         } catch (SQLException e) {
             throw new RuntimeException("Error fetching last sync time", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
         return null;
     }

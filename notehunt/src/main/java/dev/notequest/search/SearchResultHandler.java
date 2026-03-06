@@ -18,7 +18,7 @@ import dev.notequest.search.RankingStrategy;
 
 public class SearchResultHandler {
 
-    private final IndexSearcher searcher;
+    private IndexSearcher searcher;
     private final SnippetExtractor snippetExtractor;
     private final QueryParser queryParser;
     private final RankingStrategy rankingStrategy;
@@ -28,6 +28,13 @@ public class SearchResultHandler {
         this.snippetExtractor = snippetExtractor;
         this.rankingStrategy = rankingStrategy;
         this.queryParser = new QueryParser();
+    }
+
+    /**
+     * Update the IndexSearcher with a fresh instance after indexing completes.
+     */
+    public void refreshSearcher(IndexSearcher newSearcher) {
+        this.searcher = newSearcher;
     }
 
     /**

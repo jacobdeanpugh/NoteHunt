@@ -52,8 +52,9 @@ public class SearchConfiguration {
 
     /**
      * Provide IndexSearcher as Spring bean.
-     * IndexSearcher is obtained from FileIndexer, which manages the Lucene index.
-     * The searcher is cached by FileIndexer and updated when the index changes.
+     * IndexSearcher is obtained from FileIndexer lazily to ensure it's created
+     * AFTER indexing has completed (not during startup).
+     * The searcher is cached by FileIndexer and refreshed when the index changes.
      *
      * @param fileIndexer autowired FileIndexer bean
      * @return IndexSearcher for querying the Lucene index
@@ -61,6 +62,9 @@ public class SearchConfiguration {
      */
     @Bean
     public IndexSearcher indexSearcher(FileIndexer fileIndexer) throws Exception {
+        // Note: This bean is injected lazily into SearchResultHandler via SearchController.
+        // By the time it's accessed (first search request), IndexingStartupComponent has
+        // already completed indexing, so getSearcher() will return a populated index.
         return fileIndexer.getSearcher();
     }
 
