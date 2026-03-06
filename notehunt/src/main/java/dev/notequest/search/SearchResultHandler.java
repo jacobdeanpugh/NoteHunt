@@ -3,6 +3,7 @@ package dev.notequest.search;
 import dev.notequest.api.SearchResponse;
 import dev.notequest.api.SearchResult;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -86,6 +87,7 @@ public class SearchResultHandler {
      * Build a SearchResult from Lucene Document and score.
      */
     private SearchResult buildSearchResult(Document doc, float score, String queryString) throws Exception {
+        // Lucene index stores file path in "path" field; DTO names it "filePath"
         String path = doc.get("path");
         String content = doc.get("contents");
         LocalDateTime lastModified = getLastModified(doc);
@@ -97,11 +99,19 @@ public class SearchResultHandler {
         double boost = rankingStrategy.calculateBoost(lastModified);
         double boostedScore = score * boost;
 
+        // Extract fileSize from Lucene LongField
+        long fileSize = 0L;
+        IndexableField fileSizeField = doc.getField("fileSize");
+        if (fileSizeField != null && fileSizeField.numericValue() != null) {
+            fileSize = fileSizeField.numericValue().longValue();
+        }
+
         return SearchResult.builder()
                 .filePath(path)
                 .score(boostedScore)
                 .lastModified(lastModified)
                 .snippet(snippet)
+                .fileSize(fileSize)
                 .build();
     }
 

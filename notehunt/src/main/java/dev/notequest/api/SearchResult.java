@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Data
@@ -20,5 +21,5 @@ public class SearchResult {
     private String snippet;
     private long fileSize;
     @Builder.Default
-    private List<String> tags = new ArrayList<>();
+    private List<String> tags = Collections.unmodifiableList(new ArrayList<>());
 }
