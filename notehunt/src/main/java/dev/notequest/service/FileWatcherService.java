@@ -116,6 +116,24 @@ public class FileWatcherService extends Thread {
             });
     }
 
+    /**
+     * Registers a directory with the WatchService if not already registered.
+     * Called when ENTRY_CREATE events are detected on directories.
+     *
+     * @param dirPath Path to directory to register
+     */
+    private void registerDirectory(Path dirPath) {
+        try {
+            if (Files.isDirectory(dirPath)) {
+                dirPath.register(watchService, STANDARD_WATCH_EVENT_KINDS);
+                System.out.println("Registered new directory: " + dirPath);
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to register directory: " + dirPath);
+            e.printStackTrace();
+        }
+    }
+
     Boolean fileIsInExtensionFilter(String path) {
         // If no extensions are specified, include all files (no filtering)
         if (FILE_EXTENSIONS.length < 1) {
@@ -149,17 +167,25 @@ public class FileWatcherService extends Thread {
             WatchKey key;
             // Continuously monitor for file system events
             while ((key = this.watchService.take()) != null) {
-                
+
                 // Process all pending events for this key
                 for (WatchEvent<?> event : key.pollEvents()) {
                     Path full = dirPath.resolve(event.context().toString());
+
+                    // Check if this event is a directory creation
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                        Path eventPath = dirPath.resolve(event.context().toString());
+                        if (Files.isDirectory(eventPath)) {
+                            registerDirectory(eventPath);
+                        }
+                    }
 
                     FileResult fileResult = getFileResultFromFileChange(full, event.kind());
 
                     if (fileIsInExtensionFilter(full.toString()))
                         bus.post(new FileChangeEvent(fileResult));
                 }
-                
+
                 // Reset the key to continue receiving events
                 key.reset();
             }
