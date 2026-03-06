@@ -92,8 +92,17 @@ export default function SearchScreen() {
 
       {/* Error message */}
       {error && (
-        <div className="bg-status-error bg-opacity-10 border border-status-error text-status-error p-3 rounded mb-6">
-          {error}
+        <div className="bg-status-error bg-opacity-10 border border-status-error text-status-error p-3 rounded mb-6 flex justify-between items-center">
+          <span>{error}</span>
+          <button
+            onClick={() => {
+              if (query) performSearch()
+              else fetchStatus()
+            }}
+            className="text-sm underline hover:no-underline"
+          >
+            Retry
+          </button>
         </div>
       )}
 
