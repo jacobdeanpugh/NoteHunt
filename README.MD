@@ -126,19 +126,71 @@ mvn clean package
 
 This creates a shaded JAR at `target/notehunt-1.0-SNAPSHOT.jar` with all dependencies.
 
-### Running
+### Running the Spring Boot Server
+
+#### Option 1: Using Maven (Development)
 
 ```bash
+cd notehunt
+mvn spring-boot:run
+```
+
+This starts the Spring Boot server directly from Maven. The application will:
+- Initialize the H2 database and file_states table
+- Scan the configured directory for files
+- Start the REST API server on `http://localhost:8080`
+- Begin monitoring the directory for changes
+
+#### Option 2: Using the Shaded JAR (Production)
+
+```bash
+cd notehunt
+java -jar target/notehunt-1.0-SNAPSHOT.jar
+```
+
+This runs the pre-built JAR with all dependencies included.
+
+#### Option 3: Using Java Directly (Development)
+
+```bash
+cd notehunt
 java -cp target/notehunt-1.0-SNAPSHOT.jar dev.notequest.App
 ```
 
+### Server Endpoints
+
+Once running, the following REST endpoints are available:
+
+- **Search** - `GET /api/search?q=<query>` - Search the indexed files
+- **Status** - `GET /api/status` - Get indexing status and file counts
+- **Index** - `POST /api/index` - Manually trigger re-indexing (if implemented)
+
+Check the search controller and API documentation for full endpoint details.
+
+### Stopping the Server
+
+- **Maven**: Press `Ctrl+C` in the terminal
+- **JAR**: Press `Ctrl+C` in the terminal
+
+The application will:
+- Close the H2 database connection
+- Cleanup resources gracefully
+- Persist file state for next startup
+
 ## Dependencies
 
+### Core Libraries
+- **Spring Boot 3.2.0** - Web framework and server runtime
 - **Apache Lucene 10.3.1** - Full-text search indexing
 - **H2 Database 2.3.232** - Embedded relational database
+- **HikariCP 5.1.0** - Connection pooling for thread-safe database access
 - **Google Guava 31.1** - Event bus and utilities
 - **json-simple 1.1.1** - JSON configuration parsing
-- **JUnit 3.8.1** - Testing framework
+
+### Testing
+- **JUnit Jupiter 5.11.0** - Testing framework
+- **Mockito 5.12.0** - Mocking for unit tests
+- **Spring Boot Test 3.2.0** - Integration testing support
 
 ## File Structure
 
