@@ -11,7 +11,7 @@ import com.zaxxer.hikari.HikariDataSource;
  */
 public class ConnectionPoolProvider {
 
-    private static HikariDataSource instance;
+    private static volatile HikariDataSource instance;
     private static final Object LOCK = new Object();
 
     /**
