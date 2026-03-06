@@ -1,16 +1,66 @@
-# React + Vite
+# NoteHunt Web Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Modern, minimal React SPA for searching notes. Built with Acme-inspired dark design.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## React Compiler
+Server runs at **http://localhost:3000**
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Requires NoteHunt Java backend running on **http://localhost:8080**
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Search** - Full-text search with results ranking, pagination
+- **Index Status** - Real-time indexing progress monitoring
+- **Settings** - Configuration management (read-only, Phase 5)
+
+## Design
+
+- Warm dark aesthetic (#0e0e0e background)
+- Editorial typography (Geist/Inter fonts)
+- No gradients, shadows, or glassmorphism
+- Icon-only sidebar navigation
+
+## Tech Stack
+
+- React 18
+- Vite (build)
+- Tailwind CSS
+- React Router
+- Vitest + React Testing Library
+
+## Available Scripts
+
+- `npm run dev` - Start dev server
+- `npm run build` - Production build
+- `npm test` - Run tests
+- `npm run test:ui` - Test UI dashboard
+
+## Architecture
+
+```
+src/
+├── api/           # API client
+├── components/    # Reusable UI components
+│  └── ui/        # Primitive components
+├── screens/       # Full-page screens
+└── App.jsx        # Root component with routing
+```
+
+## Future (Phase 4-5)
+
+- Tag filtering and auto-complete
+- Settings persistence
+- Advanced search syntax UI
+- Mobile responsiveness
+- Dark/light theme toggle
+
+## Contributing
+
+See [DEVELOPMENT.md](./DEVELOPMENT.md)
