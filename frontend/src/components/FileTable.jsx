@@ -5,11 +5,11 @@ export default function FileTable({ files = [], loading = false }) {
       case 'pending':
         return 'text-status-pending'
       case 'in_progress':
-        return 'text-muted'
+        return 'text-[#555555]'
       case 'error':
         return 'text-status-error'
       default:
-        return 'text-body'
+        return 'text-[#aaaaaa]'
     }
   }
 
@@ -39,7 +39,7 @@ export default function FileTable({ files = [], loading = false }) {
         {[...Array(10)].map((_, i) => (
           <div
             key={i}
-            className="bg-surface border-b border-dark h-8 animate-pulse"
+            className="bg-[#141414] border-b border-[#1e1e1e] h-8 animate-pulse"
           />
         ))}
       </div>
@@ -47,9 +47,9 @@ export default function FileTable({ files = [], loading = false }) {
   }
 
   return (
-    <div className="border border-dark rounded overflow-hidden">
+    <div className="border border-[#1e1e1e] rounded overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-3 gap-4 bg-surface px-4 py-2 text-xs uppercase text-muted font-medium">
+      <div className="grid grid-cols-3 gap-4 bg-[#141414] px-4 py-2 text-xs uppercase text-[#555555] font-medium">
         <div>File Path</div>
         <div>Modified</div>
         <div className="flex justify-between">
@@ -61,26 +61,26 @@ export default function FileTable({ files = [], loading = false }) {
       {/* Rows */}
       <div>
         {files.length === 0 ? (
-          <div className="p-4 text-center text-muted text-sm">
+          <div className="p-4 text-center text-[#555555] text-sm">
             No files to display
           </div>
         ) : (
           files.map((file, idx) => (
             <div
               key={idx}
-              className="grid grid-cols-3 gap-4 px-4 py-3 border-t border-dark text-sm hover:bg-surface transition-colors"
+              className="grid grid-cols-3 gap-4 px-4 py-3 border-t border-[#1e1e1e] text-sm hover:bg-[#141414] transition-colors"
             >
-              <div className="font-mono text-body truncate">
+              <div className="font-mono text-[#aaaaaa] truncate">
                 {file.filePath}
               </div>
-              <div className="text-muted">
+              <div className="text-[#555555]">
                 {formatTime(file.lastModified)}
               </div>
               <div className="flex justify-between items-center">
                 <span className={`${getStatusColor(file.status)}`}>
                   {file.status}
                 </span>
-                <span className="text-muted">{formatSize(file.fileSize)}</span>
+                <span className="text-[#555555]">{formatSize(file.fileSize)}</span>
               </div>
             </div>
           ))

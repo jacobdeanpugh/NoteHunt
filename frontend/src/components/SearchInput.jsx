@@ -24,7 +24,7 @@ export default function SearchInput({ onSearch, loading = false }) {
   return (
     <div className="mb-12">
       {/* Heading */}
-      <h2 className="text-base text-body mb-4">I want to find...</h2>
+      <h2 className="text-base text-[#aaaaaa] mb-4">I want to find...</h2>
 
       {/* Prompt starters */}
       <div className="space-y-2 mb-6">
@@ -32,9 +32,9 @@ export default function SearchInput({ onSearch, loading = false }) {
           <button
             key={idx}
             onClick={() => handlePromptClick(starter)}
-            className="text-sm text-muted hover:text-body transition-colors block"
+            className="text-sm text-[#555555] hover:text-[#aaaaaa] transition-colors block"
           >
-            I want to find... <span className="text-body">{starter}</span>
+            I want to find... <span className="text-[#aaaaaa]">{starter}</span>
           </button>
         ))}
       </div>
@@ -51,7 +51,7 @@ export default function SearchInput({ onSearch, loading = false }) {
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted hover:text-body disabled:opacity-50 text-lg"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#555555] hover:text-[#aaaaaa] disabled:opacity-50 text-lg"
         >
           →
         </button>

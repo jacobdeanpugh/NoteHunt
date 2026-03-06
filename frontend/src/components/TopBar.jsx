@@ -10,14 +10,14 @@ export default function TopBar() {
   }, [])
 
   return (
-    <header className="fixed top-0 left-12 right-0 h-14 bg-primary border-b border-dark flex items-center justify-between px-8 z-10">
+    <header className="fixed top-0 left-12 right-0 h-14 bg-[#0e0e0e] border-b border-[#1e1e1e] flex items-center justify-between px-8 z-10">
       {/* Left: Logo/Title */}
-      <div className="text-light font-medium text-sm">NoteHunt</div>
+      <div className="text-[#f5f5f5] font-medium text-sm">NoteHunt</div>
 
       {/* Right: Username and Avatar */}
       <div className="flex items-center gap-4">
-        <span className="text-body text-sm">{username}</span>
-        <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center text-light text-xs font-bold">
+        <span className="text-[#aaaaaa] text-sm">{username}</span>
+        <div className="w-8 h-8 rounded-full bg-[#141414] flex items-center justify-center text-[#f5f5f5] text-xs font-bold">
           {username.charAt(0).toUpperCase()}
         </div>
       </div>

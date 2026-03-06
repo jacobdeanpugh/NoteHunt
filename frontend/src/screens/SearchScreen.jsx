@@ -75,7 +75,7 @@ export default function SearchScreen() {
       {/* Greeting */}
       <div className="mb-12">
         <h1 className="text-5xl font-light mb-2">Good morning, {username}</h1>
-        <p className="text-muted">here's what's in your notes</p>
+        <p className="text-[#555555]">here's what's in your notes</p>
       </div>
 
       {/* Summary Cards */}

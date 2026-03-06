@@ -15,7 +15,7 @@ export default function SearchResults({
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="bg-surface border border-dark rounded p-6 h-24 animate-pulse"
+            className="bg-[#141414] border border-[#1e1e1e] rounded p-6 h-24 animate-pulse"
           />
         ))}
       </div>
@@ -24,7 +24,7 @@ export default function SearchResults({
 
   if (totalResults === 0) {
     return (
-      <div className="text-center text-muted py-12">
+      <div className="text-center text-[#555555] py-12">
         No results found. Try a different search.
       </div>
     )
@@ -34,7 +34,7 @@ export default function SearchResults({
 
   return (
     <div>
-      <h3 className="text-xs uppercase text-muted font-medium tracking-wide mb-4">
+      <h3 className="text-xs uppercase text-[#555555] font-medium tracking-wide mb-4">
         Search Results ({totalResults} found)
       </h3>
 

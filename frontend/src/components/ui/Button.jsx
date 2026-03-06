@@ -6,9 +6,9 @@ export default function Button({
   disabled = false,
 }) {
   const variants = {
-    primary: 'bg-text-light text-bg-primary hover:opacity-90',
-    secondary: 'bg-surface border border-dark text-body hover:bg-surface',
-    text: 'text-muted hover:text-body',
+    primary: 'bg-text-[#f5f5f5] text-bg-[#0e0e0e] hover:opacity-90',
+    secondary: 'bg-[#141414] border border-[#1e1e1e] text-[#aaaaaa] hover:bg-[#141414]',
+    text: 'text-[#555555] hover:text-[#aaaaaa]',
   }
 
   return (
