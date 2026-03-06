@@ -3,8 +3,10 @@ package dev.notequest.handler;
 import java.sql.*;
 
 import com.google.common.eventbus.Subscribe;
+import com.zaxxer.hikari.HikariDataSource;
 
 import dev.notequest.models.DatabaseQueries;
+import dev.notequest.provider.ConnectionPoolProvider;
 import dev.notequest.service.FileResult;
 import dev.notequest.service.FileResult.FileStatus;
 import dev.notequest.events.*;
@@ -31,17 +33,15 @@ import java.util.Map;
  * - Maintain file metadata including paths, hashes, and indexing status
  */
 public class DatabaseHandler {
-    // Database connection configuration constants
-    private static final String CONNECTION_URL = "jdbc:h2:file:./data/db;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1";
-    private static final String CONNECTION_USER = "sa";
-    private static final String CONNECTION_PSWD = "";
+    // Connection pool for thread-safe database access
+    private HikariDataSource dataSource;
 
-    // Database connection instance - maintained for the lifetime of this handler
-    private Connection conn;
+    // Test-only connection for injected test doubles
+    private Connection testConnection;
 
     /**
-     * Constructor initializes the database connection and sets up the schema.
-     * Creates the data directory if it doesn't exist and establishes H2 database connection.
+     * Constructor initializes the database connection pool and sets up the schema.
+     * Creates the data directory if it doesn't exist and gets HikariCP connection pool.
      *
      * @throws RuntimeException if database connection fails or directory creation is denied
      */
@@ -51,16 +51,12 @@ public class DatabaseHandler {
             // This is necessary because H2 won't create the directory structure automatically
             new File("./data").mkdirs();
 
-            // Establish connection to H2 database with embedded mode configuration:
-            // - AUTO_SERVER=TRUE allows multiple connections to the same database
-            // - DB_CLOSE_DELAY=-1 keeps the database open until JVM shutdown
-            this.conn = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PSWD);
+            // Get the singleton HikariCP connection pool for thread-safe database access
+            // The pool manages connections efficiently and handles concurrent requests
+            this.dataSource = ConnectionPoolProvider.getInstance();
 
             // Initialize database schema (tables, indexes, etc.)
             setupSchema();
-        } catch (SQLException e) {
-            // Wrap SQL exceptions in runtime exception to simplify error handling
-            throw new RuntimeException("Unable to establish connection to databse: ", e);
         } catch (SecurityException e) {
             // Handle case where file system permissions prevent directory creation
             throw new RuntimeException("Unable to create folder due to permissions", e);
@@ -75,25 +71,63 @@ public class DatabaseHandler {
      * @throws RuntimeException if schema setup fails
      */
     public DatabaseHandler(Connection conn) {
-        this.conn = conn;
-        setupSchema();
+        // Test-only: store connection and skip pool initialization
+        this.dataSource = null;
+        this.testConnection = conn;
+        setupSchema(conn);
+    }
+
+    /**
+     * Gets a database connection from either the connection pool or test connection.
+     * Used internally by all database operations to support both production and test modes.
+     *
+     * @return Connection from pool (production) or test connection (testing)
+     * @throws SQLException if connection retrieval fails
+     */
+    private Connection getConnection() throws SQLException {
+        if (testConnection != null) {
+            return testConnection;
+        }
+        return dataSource.getConnection();
     }
 
     /**
      * Sets up the database schema by executing the schema creation SQL.
-     * This method runs the initial database setup queries to create tables and indexes.
-     * Should be idempotent - safe to run multiple times without causing errors.
-     * 
+     * Called during no-arg constructor to initialize pool and schema.
+     * Acquires a fresh connection from the pool for schema setup.
+     *
      * @throws RuntimeException if schema setup SQL execution fails
      */
     private void setupSchema() {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            setupSchema(conn);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error occurred setting up schema", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+    }
+
+    /**
+     * Sets up the database schema using the provided connection.
+     * Called by test constructor or internally from setupSchema().
+     *
+     * @param conn Database connection to use for schema setup
+     * @throws RuntimeException if schema setup SQL execution fails
+     */
+    private void setupSchema(Connection conn) {
         try(Statement stmt = conn.createStatement()) {
             // Execute schema setup SQL from DatabaseQueries constants
             // Using try-with-resources ensures Statement is properly closed
             stmt.execute(DatabaseQueries.SETUP_SCHEMA);
         } catch (SQLException e) {
             // Wrap SQL exception to maintain consistent error handling pattern
-            throw new RuntimeException("Error occured setting up schema", e);
+            throw new RuntimeException("Error occurred setting up schema", e);
         }
     }
 
@@ -101,16 +135,23 @@ public class DatabaseHandler {
      * Tests the database connection validity.
      * Prints connection status to console for debugging purposes.
      * This is primarily used for troubleshooting database connectivity issues.
-     * 
+     *
      * @throws RuntimeException if connection validity check fails
      */
     public void testDatabaseConnection() {
+        Connection conn = null;
         try {
             // Check if connection is valid with 0 second timeout
             // isValid(0) performs a simple connectivity test without waiting
-            System.out.println(this.conn.isValid(0) ? "Connection Valid" : "Connection Not Valid");
+            conn = getConnection();
+            System.out.println(conn.isValid(0) ? "Connection Valid" : "Connection Not Valid");
         } catch (SQLException e) {
-            throw new RuntimeException("Unable to establish connection to databse: ", e);
+            throw new RuntimeException("Unable to establish connection to database: ", e);
+        } finally {
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
         }
     }
 
@@ -152,7 +193,7 @@ public class DatabaseHandler {
      */
     private void flagStaleFilesInDirectory(FileResult[] currentDirectoryFiles) {
         // List to store file path hashes of files that have been deleted
-        
+
         // Convert FileResult objects to array of file path hashes for SQL operation
         // We use hashes instead of full paths for efficiency and consistency
         String[] currentDirectoryFilesPathHashes = new String[currentDirectoryFiles.length];
@@ -162,18 +203,25 @@ public class DatabaseHandler {
             currentDirectoryFilesPathHashes[i] = currentDirectoryFiles[i].getFilePathHash();
         }
 
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.FLAG_STALE_FILES_IN_DIRECTORY)) {
-            // Create SQL array from file path hashes for database query
-            // This allows us to pass the entire array as a single parameter
-            Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", currentDirectoryFilesPathHashes);
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.FLAG_STALE_FILES_IN_DIRECTORY)) {
+                // Create SQL array from file path hashes for database query
+                // This allows us to pass the entire array as a single parameter
+                Array SQLCompatibleArray = conn.createArrayOf("VARCHAR", currentDirectoryFilesPathHashes);
 
-            // Set the array parameter in prepared statement (first and only parameter)
-            ps.setArray(1, SQLCompatibleArray);
+                // Set the array parameter in prepared statement (first and only parameter)
+                ps.setArray(1, SQLCompatibleArray);
 
-            // Execute query to find files in database but not in current directory
-            // The query should return files that exist in DB but not in the provided array
-            ps.execute();
-
+                // Execute query to find files in database but not in current directory
+                // The query should return files that exist in DB but not in the provided array
+                ps.execute();
+            }
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                conn.close();
+            }
         } catch (SQLException e) {
             // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured getting current directory file difference", e);
@@ -195,33 +243,40 @@ public class DatabaseHandler {
      * @param currentDirectoryFiles List of FileResult objects to insert/update in database
      */
     void mergeFilesIntoTable(FileResult... fileResults) {
-        try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.STANDARD_MERGE_INTO_TABLE)) {
-            // Process each file result and add to batch for efficient execution
-            for (FileResult fr: fileResults) {
-                // Convert FileResult's Instant to SQL Timestamp for database storage
-                // Handle null lastModified for error cases by using current time
-                Timestamp last_modified_timestamp = fr.getLastModified() != null
-                    ? new Timestamp(fr.getLastModified().toMillis())
-                    : new Timestamp(System.currentTimeMillis());
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(DatabaseQueries.STANDARD_MERGE_INTO_TABLE)) {
+                // Process each file result and add to batch for efficient execution
+                for (FileResult fr: fileResults) {
+                    // Convert FileResult's Instant to SQL Timestamp for database storage
+                    // Handle null lastModified for error cases by using current time
+                    Timestamp last_modified_timestamp = fr.getLastModified() != null
+                        ? new Timestamp(fr.getLastModified().toMillis())
+                        : new Timestamp(System.currentTimeMillis());
 
-                // Set parameters for prepared statement (index corresponds to SQL placeholders)
-                ps.setString(1, fr.getPath().toString());           // File path as string
-                ps.setString(2, fr.getFilePathHash());              // Hash for efficient lookups
-                ps.setString(3, fr.getFileStatus().toString());     // Indexing status based on file processing result
-                ps.setTimestamp(4, last_modified_timestamp);        // When file was last modified
-                ps.setString(5, fr.getExc().getMessage());          // Exception message (null if no error)
+                    // Set parameters for prepared statement (index corresponds to SQL placeholders)
+                    ps.setString(1, fr.getPath().toString());           // File path as string
+                    ps.setString(2, fr.getFilePathHash());              // Hash for efficient lookups
+                    ps.setString(3, fr.getFileStatus().toString());     // Indexing status based on file processing result
+                    ps.setTimestamp(4, last_modified_timestamp);        // When file was last modified
+                    ps.setString(5, fr.getExc().getMessage());          // Exception message (null if no error)
 
-                // Add current set of parameters to the batch
-                ps.addBatch();
+                    // Add current set of parameters to the batch
+                    ps.addBatch();
+                }
+
+                // Execute all batched statements at once for better performance
+                // Returns array of update counts for each statement in the batch
+                int[] counts = ps.executeBatch();
+
+                // Log the number of records processed for monitoring
+                System.out.println("Upserted " + counts.length + " rows.");
             }
-
-            // Execute all batched statements at once for better performance
-            // Returns array of update counts for each statement in the batch
-            int[] counts = ps.executeBatch();                   
-
-            // Log the number of records processed for monitoring
-            System.out.println("Upserted " + counts.length + " rows.");
-
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                conn.close();
+            }
         } catch (SQLException e) {
             // Wrap SQL exception for consistent error handling
             throw new RuntimeException("An unexpected error occured updating current files status", e);
@@ -250,19 +305,27 @@ public class DatabaseHandler {
     public ArrayList<FileResult> fetchPendingFiles() {
         ArrayList<FileResult> results  = new ArrayList<FileResult>();
 
-        try(Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(DatabaseQueries.SELECT_PENDING_FILES);) {
-                while (rs.next()) {
-                    results.add(
-                       new FileResult(
-                            Paths.get(rs.getString("File_Path")),
-                            FileStatus.getStatusFromString(rs.getString("Status")),
-                            FileTime.from(rs.getTimestamp("Last_Modified").toInstant())
-                        )
-                    );
-                }
-        } catch (SQLException e) { 
-            e.printStackTrace();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try(Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(DatabaseQueries.SELECT_PENDING_FILES);) {
+                    while (rs.next()) {
+                        results.add(
+                           new FileResult(
+                                Paths.get(rs.getString("File_Path")),
+                                FileStatus.getStatusFromString(rs.getString("Status")),
+                                FileTime.from(rs.getTimestamp("Last_Modified").toInstant())
+                            )
+                        );
+                    }
+            }
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching pending files", e);
         }
 
         return results;
@@ -294,10 +357,18 @@ public class DatabaseHandler {
      */
     public Map<String, Long> getStatusCounts() {
         Map<String, Long> counts = new HashMap<>();
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(DatabaseQueries.COUNT_FILES_BY_STATUS)) {
-            while (rs.next()) {
-                counts.put(rs.getString("Status"), rs.getLong("cnt"));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(DatabaseQueries.COUNT_FILES_BY_STATUS)) {
+                while (rs.next()) {
+                    counts.put(rs.getString("Status"), rs.getLong("cnt"));
+                }
+            }
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                conn.close();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error fetching status counts", e);
@@ -315,13 +386,21 @@ public class DatabaseHandler {
      * @throws RuntimeException if the database query fails
      */
     public LocalDateTime getLastSyncTime() {
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(DatabaseQueries.GET_LAST_SYNC_TIME)) {
-            if (rs.next()) {
-                Timestamp ts = rs.getTimestamp("last_sync");
-                if (ts != null) {
-                    return ts.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(DatabaseQueries.GET_LAST_SYNC_TIME)) {
+                if (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("last_sync");
+                    if (ts != null) {
+                        return ts.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+                    }
                 }
+            }
+            // Only close connection if it came from the pool (not test connection)
+            if (testConnection == null && conn != null) {
+                conn.close();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error fetching last sync time", e);

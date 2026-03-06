@@ -165,34 +165,49 @@ public class FileWatcherService extends Thread {
     private void startWatchingDirectory() {
         try {
             WatchKey key;
-            // Continuously monitor for file system events
             while ((key = this.watchService.take()) != null) {
 
                 // Process all pending events for this key
                 for (WatchEvent<?> event : key.pollEvents()) {
-                    Path full = dirPath.resolve(event.context().toString());
+                    try {
+                        Path full = dirPath.resolve(event.context().toString());
 
-                    // Check if this event is a directory creation
-                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                        Path eventPath = dirPath.resolve(event.context().toString());
-                        if (Files.isDirectory(eventPath)) {
-                            registerDirectory(eventPath);
+                        // Check if this event is a directory creation
+                        if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                            Path eventPath = dirPath.resolve(event.context().toString());
+                            if (Files.isDirectory(eventPath)) {
+                                registerDirectory(eventPath);
+                            }
                         }
+
+                        FileResult fileResult = getFileResultFromFileChange(full, event.kind());
+
+                        if (fileIsInExtensionFilter(full.toString())) {
+                            try {
+                                bus.post(new FileChangeEvent(fileResult));
+                            } catch (Exception e) {
+                                System.err.println("Failed to post file change event for: " + full);
+                                e.printStackTrace();
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error processing watch event: " + e.getMessage());
+                        e.printStackTrace();
                     }
-
-                    FileResult fileResult = getFileResultFromFileChange(full, event.kind());
-
-                    if (fileIsInExtensionFilter(full.toString()))
-                        bus.post(new FileChangeEvent(fileResult));
                 }
 
-                // Reset the key to continue receiving events
-                key.reset();
+                boolean valid = key.reset();
+                if (!valid) {
+                    System.err.println("WatchKey no longer valid, stopping watcher");
+                    break;
+                }
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException("Thread was interrupted during watch operation", e);
+            System.err.println("FileWatcherService thread interrupted");
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            throw new RuntimeException("An unexpected exception occurred during directory monitoring", e);
+            System.err.println("Fatal error in FileWatcherService watch loop: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -254,5 +269,23 @@ public class FileWatcherService extends Thread {
         // Start the primary file monitoring process
         getAllDirectoryFiles();
         startWatchingDirectory();
+    }
+
+    /**
+     * Properly closes the WatchService and releases resources.
+     * Should be called before shutting down the application.
+     *
+     * @throws IOException if closing the WatchService fails
+     */
+    public void close() throws IOException {
+        try {
+            if (watchService != null && !watchService.isClosed()) {
+                watchService.close();
+                System.out.println("FileWatcherService closed successfully");
+            }
+        } catch (IOException e) {
+            System.err.println("Error closing WatchService: " + e.getMessage());
+            throw e;
+        }
     }
 }
