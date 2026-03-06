@@ -27,7 +27,8 @@
       "Bash(test:*)",
       "Bash(npm install:*)",
       "Bash(README.md:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npm test:*)"
     ]
   }
 }

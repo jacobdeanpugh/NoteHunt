@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import SummaryCards from '../components/SummaryCards'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
@@ -12,6 +12,7 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false)
   const [statusLoading, setStatusLoading] = useState(true)
   const [error, setError] = useState(null)
+  const isInitialLoadRef = useRef(true)
 
   // Fetch index status on mount
   useEffect(() => {
@@ -29,15 +30,23 @@ export default function SearchScreen() {
 
   const fetchStatus = async () => {
     try {
-      setStatusLoading(true)
+      // Show loading skeleton only on initial load
+      if (isInitialLoadRef.current) {
+        setStatusLoading(true)
+      }
       const data = await getIndexStatus()
       setIndexStatus(data)
       setError(null)
+      // Mark initial load as complete
+      isInitialLoadRef.current = false
     } catch (err) {
       console.error('Failed to fetch status:', err)
       setError('Failed to load index status')
     } finally {
-      setStatusLoading(false)
+      // Only hide loading if we showed it (initial load)
+      if (statusLoading) {
+        setStatusLoading(false)
+      }
     }
   }
 
