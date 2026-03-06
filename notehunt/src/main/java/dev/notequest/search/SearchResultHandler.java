@@ -87,19 +87,20 @@ public class SearchResultHandler {
      * Build a SearchResult from Lucene Document and score.
      */
     private SearchResult buildSearchResult(Document doc, float score, String queryString) throws Exception {
-        // Lucene index stores file path in "path" field; DTO names it "filePath"
-        String path = doc.get("path");
+        // Extract filePath from Lucene field "path"
+        String filePath = doc.get("path");
+        // Extract content from Lucene field "contents" (now stored, so non-null)
         String content = doc.get("contents");
         LocalDateTime lastModified = getLastModified(doc);
 
-        // Extract snippet with highlighting
+        // Generate snippet using content
         String snippet = snippetExtractor.extractSnippet(content != null ? content : "", queryString);
 
         // Apply recency boost to score
         double boost = rankingStrategy.calculateBoost(lastModified);
         double boostedScore = score * boost;
 
-        // Extract fileSize from Lucene LongField
+        // Extract fileSize from Lucene LongField (stored as LongField per Task 2)
         long fileSize = 0L;
         IndexableField fileSizeField = doc.getField("fileSize");
         if (fileSizeField != null && fileSizeField.numericValue() != null) {
@@ -107,7 +108,7 @@ public class SearchResultHandler {
         }
 
         return SearchResult.builder()
-                .filePath(path)
+                .filePath(filePath)
                 .score(boostedScore)
                 .lastModified(lastModified)
                 .snippet(snippet)
