@@ -1,6 +1,7 @@
 package dev.notequest.api;
 
 import dev.notequest.search.SearchResultHandler;
+import dev.notequest.handler.DatabaseHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -42,6 +44,9 @@ class SearchControllerTest {
     @MockBean
     private SearchResultHandler searchResultHandler;
 
+    @MockBean
+    private DatabaseHandler databaseHandler;
+
     private SearchResponse mockSearchResponse;
     private SearchResult testResult1;
     private SearchResult testResult2;
@@ -50,14 +55,14 @@ class SearchControllerTest {
     void setUp() {
         // Initialize test data
         testResult1 = SearchResult.builder()
-                .path("/test/file.txt")
+                .filePath("/test/file.txt")
                 .score(1.5f)
                 .lastModified(LocalDateTime.of(2025, 3, 1, 12, 0, 0))
                 .snippet("Python is a great programming language for data science")
                 .build();
 
         testResult2 = SearchResult.builder()
-                .path("/test/python_guide.txt")
+                .filePath("/test/python_guide.txt")
                 .score(1.2f)
                 .lastModified(LocalDateTime.of(2025, 3, 2, 10, 30, 0))
                 .snippet("Python tutorial covers basics and advanced topics")
@@ -65,7 +70,7 @@ class SearchControllerTest {
 
         mockSearchResponse = SearchResponse.builder()
                 .results(Arrays.asList(testResult1, testResult2))
-                .totalHits(2)
+                .totalResults(2)
                 .limit(10)
                 .offset(0)
                 .timestamp(LocalDateTime.now())
@@ -83,7 +88,7 @@ class SearchControllerTest {
         // Mock response with 1 result
         SearchResponse singleResultResponse = SearchResponse.builder()
                 .results(Arrays.asList(testResult1))
-                .totalHits(1)
+                .totalResults(1)
                 .limit(10)
                 .offset(0)
                 .timestamp(LocalDateTime.now())
@@ -98,8 +103,8 @@ class SearchControllerTest {
                 .param("offset", "0"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.results", hasSize(1)))
-                .andExpect(jsonPath("$.totalHits", is(1)))
-                .andExpect(jsonPath("$.results[0].path", containsString("file.txt")))
+                .andExpect(jsonPath("$.totalResults", is(1)))
+                .andExpect(jsonPath("$.results[0].filePath", containsString("file.txt")))
                 .andExpect(jsonPath("$.timestamp", notNullValue()));
 
         verify(searchResultHandler).executeSearch("python", 10, 0);
@@ -181,7 +186,7 @@ class SearchControllerTest {
     void testSearchWithPagination() throws Exception {
         SearchResponse paginatedResponse = SearchResponse.builder()
                 .results(Arrays.asList(testResult1))
-                .totalHits(50)
+                .totalResults(50)
                 .limit(5)
                 .offset(10)
                 .timestamp(LocalDateTime.now())
@@ -197,7 +202,7 @@ class SearchControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.limit", is(5)))
                 .andExpect(jsonPath("$.offset", is(10)))
-                .andExpect(jsonPath("$.totalHits", is(50)));
+                .andExpect(jsonPath("$.totalResults", is(50)));
 
         verify(searchResultHandler).executeSearch("python", 5, 10);
     }
@@ -224,11 +229,25 @@ class SearchControllerTest {
      */
     @Test
     void testIndexStatusEndpoint() throws Exception {
+        // Arrange: Mock DatabaseHandler to return test data
+        Map<String, Long> mockCounts = Map.of(
+            "Complete", 5L,
+            "Pending", 2L,
+            "In_Progress", 1L,
+            "Error", 0L
+        );
+        LocalDateTime mockLastSync = LocalDateTime.now();
+
+        when(databaseHandler.getStatusCounts()).thenReturn(mockCounts);
+        when(databaseHandler.getLastSyncTime()).thenReturn(mockLastSync);
+
+        // Act & Assert
         mockMvc.perform(get("/index/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.filesIndexed").isNumber())
-                .andExpect(jsonPath("$.pendingFiles").isNumber())
-                .andExpect(jsonPath("$.indexSize").exists())
+                .andExpect(jsonPath("$.completedFiles").value(5))
+                .andExpect(jsonPath("$.pendingFiles").value(2))
+                .andExpect(jsonPath("$.inProgressFiles").value(1))
+                .andExpect(jsonPath("$.errorFiles").value(0))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
@@ -243,7 +262,7 @@ class SearchControllerTest {
         when(searchResultHandler.executeSearch("python/java", 10, 0))
                 .thenReturn(SearchResponse.builder()
                         .results(Collections.emptyList())
-                        .totalHits(0)
+                        .totalResults(0)
                         .limit(10)
                         .offset(0)
                         .timestamp(LocalDateTime.now())
@@ -252,7 +271,7 @@ class SearchControllerTest {
         mockMvc.perform(get("/search")
                 .param("q", "python/java"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalHits", is(0)));
+                .andExpect(jsonPath("$.totalResults", is(0)));
 
         verify(searchResultHandler).executeSearch("python/java", 10, 0);
     }
@@ -298,7 +317,7 @@ class SearchControllerTest {
     void testSearchWithEmptyResults() throws Exception {
         SearchResponse emptyResponse = SearchResponse.builder()
                 .results(Collections.emptyList())
-                .totalHits(0)
+                .totalResults(0)
                 .limit(10)
                 .offset(0)
                 .timestamp(LocalDateTime.now())
@@ -310,7 +329,7 @@ class SearchControllerTest {
         mockMvc.perform(get("/search")
                 .param("q", "nonexistentterm"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalHits", is(0)))
+                .andExpect(jsonPath("$.totalResults", is(0)))
                 .andExpect(jsonPath("$.results", hasSize(0)));
     }
 
@@ -328,7 +347,7 @@ class SearchControllerTest {
         mockMvc.perform(get("/search")
                 .param("q", "python"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.results[0].path").exists())
+                .andExpect(jsonPath("$.results[0].filePath").exists())
                 .andExpect(jsonPath("$.results[0].score").isNumber())
                 .andExpect(jsonPath("$.results[0].snippet").exists())
                 .andExpect(jsonPath("$.results[0].lastModified").exists());
@@ -344,7 +363,7 @@ class SearchControllerTest {
     void testSearchWithMaxValidLimit() throws Exception {
         SearchResponse maxLimitResponse = SearchResponse.builder()
                 .results(Arrays.asList(testResult1, testResult2))
-                .totalHits(2)
+                .totalResults(2)
                 .limit(100)
                 .offset(0)
                 .timestamp(LocalDateTime.now())
@@ -372,7 +391,7 @@ class SearchControllerTest {
     void testSearchWithMinValidLimit() throws Exception {
         SearchResponse minLimitResponse = SearchResponse.builder()
                 .results(Arrays.asList(testResult1))
-                .totalHits(2)
+                .totalResults(2)
                 .limit(1)
                 .offset(0)
                 .timestamp(LocalDateTime.now())

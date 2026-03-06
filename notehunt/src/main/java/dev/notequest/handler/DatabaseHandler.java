@@ -12,7 +12,10 @@ import dev.notequest.events.*;
 import java.io.File;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -279,6 +282,51 @@ public class DatabaseHandler {
     @Subscribe
     public void handleSetFilesToCompleteEvent(SetFilesToCompleteEvent event) {
         mergeFilesIntoTable(event.getCompletedFiles());
+    }
+
+    /**
+     * Retrieves counts of files grouped by status.
+     * Returns a map with status names as keys and file counts as values.
+     *
+     * @return Map<String, Long> where keys are status values (e.g., "Pending", "Complete")
+     *         and values are the counts of files with that status
+     * @throws RuntimeException if the database query fails
+     */
+    public Map<String, Long> getStatusCounts() {
+        Map<String, Long> counts = new HashMap<>();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(DatabaseQueries.COUNT_FILES_BY_STATUS)) {
+            while (rs.next()) {
+                counts.put(rs.getString("Status"), rs.getLong("cnt"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching status counts", e);
+        }
+        return counts;
+    }
+
+    /**
+     * Retrieves the timestamp of the last completed file indexing operation.
+     * Queries for the most recent Last_Modified timestamp among all files
+     * with Complete status.
+     *
+     * @return LocalDateTime of the most recently completed file, or null if no
+     *         completed files exist in the database
+     * @throws RuntimeException if the database query fails
+     */
+    public LocalDateTime getLastSyncTime() {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(DatabaseQueries.GET_LAST_SYNC_TIME)) {
+            if (rs.next()) {
+                Timestamp ts = rs.getTimestamp("last_sync");
+                if (ts != null) {
+                    return ts.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching last sync time", e);
+        }
+        return null;
     }
 
 }
