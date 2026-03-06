@@ -112,4 +112,18 @@ public class DatabaseQueries {
                 Status = 'Pending'
             )
             """;
+
+    // Status monitoring queries
+    public final static String COUNT_FILES_BY_STATUS = """
+            SELECT Status, COUNT(*) as cnt
+            FROM file_states
+            WHERE Status <> 'Deleted'
+            GROUP BY Status
+            """;
+
+    public final static String GET_LAST_SYNC_TIME = """
+            SELECT MAX(Last_Modified) as last_sync
+            FROM file_states
+            WHERE Status = 'Complete'
+            """;
 }
