@@ -1,5 +1,6 @@
 package dev.notequest.config;
 
+import dev.notequest.handler.DatabaseHandler;
 import dev.notequest.service.FileIndexer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,5 +22,17 @@ public class IndexConfiguration {
     @Bean
     public FileIndexer fileIndexer() {
         return new FileIndexer();
+    }
+
+    /**
+     * Provide DatabaseHandler as Spring bean.
+     * DatabaseHandler manages H2 database operations for file state persistence.
+     * Created as a singleton to ensure all components share the same database connection.
+     *
+     * @return DatabaseHandler singleton bean
+     */
+    @Bean
+    public DatabaseHandler databaseHandler() {
+        return new DatabaseHandler();
     }
 }
