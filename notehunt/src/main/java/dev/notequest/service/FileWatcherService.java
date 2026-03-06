@@ -147,26 +147,38 @@ public class FileWatcherService extends Thread {
     private void startWatchingDirectory() {
         try {
             WatchKey key;
-            // Continuously monitor for file system events
             while ((key = this.watchService.take()) != null) {
-                
-                // Process all pending events for this key
                 for (WatchEvent<?> event : key.pollEvents()) {
-                    Path full = dirPath.resolve(event.context().toString());
+                    try {
+                        Path full = dirPath.resolve(event.context().toString());
+                        FileResult fileResult = getFileResultFromFileChange(full, event.kind());
 
-                    FileResult fileResult = getFileResultFromFileChange(full, event.kind());
-
-                    if (fileIsInExtensionFilter(full.toString()))
-                        bus.post(new FileChangeEvent(fileResult));
+                        if (fileIsInExtensionFilter(full.toString())) {
+                            try {
+                                bus.post(new FileChangeEvent(fileResult));
+                            } catch (Exception e) {
+                                System.err.println("Failed to post file change event for: " + full);
+                                e.printStackTrace();
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error processing watch event: " + e.getMessage());
+                        e.printStackTrace();
+                    }
                 }
-                
-                // Reset the key to continue receiving events
-                key.reset();
+
+                boolean valid = key.reset();
+                if (!valid) {
+                    System.err.println("WatchKey no longer valid, stopping watcher");
+                    break;
+                }
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException("Thread was interrupted during watch operation", e);
+            System.err.println("FileWatcherService thread interrupted");
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            throw new RuntimeException("An unexpected exception occurred during directory monitoring", e);
+            System.err.println("Fatal error in FileWatcherService watch loop: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
