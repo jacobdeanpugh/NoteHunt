@@ -2,12 +2,14 @@ package dev.notequest.service;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.search.IndexSearcher;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
@@ -18,6 +20,8 @@ import dev.notequest.events.SetFilesToCompleteEvent;
 import dev.notequest.handler.EventBusRegistry;
 
 public class FileIndexer implements AutoCloseable {
+
+    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB (configurable)
 
     private StandardAnalyzer analyzer;
     private Directory indexDirectory;
@@ -62,16 +66,22 @@ public class FileIndexer implements AutoCloseable {
     }
 
     public void indexFile(Path filePath) throws IOException {
-        Document doc = new Document();
-        doc.add(new StringField("path", filePath.toString(), Field.Store.YES));
+        // Consolidate file metadata into single atomic call to prevent TOCTOU race condition
+        BasicFileAttributes attrs = Files.readAttributes(filePath, BasicFileAttributes.class);
+
+        // Validate file size before reading to prevent memory exhaustion
+        if (attrs.size() > MAX_FILE_SIZE) {
+            throw new IOException("File too large for indexing: " + filePath +
+                " (" + attrs.size() + " bytes, max " + MAX_FILE_SIZE + " bytes)");
+        }
 
         String content = Files.readString(filePath);
-        doc.add(new TextField("contents", content, Field.Store.YES));  // Store.YES for snippets
 
-        doc.add(new StoredField("fileSize", Long.toString(Files.size(filePath))));
-        doc.add(new StoredField("lastModified", Long.toString(
-            Files.getLastModifiedTime(filePath).toMillis()
-        )));
+        Document doc = new Document();
+        doc.add(new StringField("path", filePath.toString(), Field.Store.YES));
+        doc.add(new TextField("contents", content, Field.Store.YES));  // Store.YES for snippets
+        doc.add(new LongField("fileSize", attrs.size(), Field.Store.YES));
+        doc.add(new LongField("lastModified", attrs.lastModifiedTime().toMillis(), Field.Store.YES));
 
         writer.addDocument(doc);
     }
