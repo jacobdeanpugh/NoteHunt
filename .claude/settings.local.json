@@ -17,7 +17,14 @@
       "Bash(mvn test:*)",
       "Bash(mvn dependency:tree:*)",
       "Bash(javap:*)",
-      "Bash(mvn help:describe:*)"
+      "Bash(mvn help:describe:*)",
+      "Bash(mvn:*)",
+      "Bash(find:*)",
+      "Bash(java:*)",
+      "Bash(ls:*)",
+      "Bash(unzip:*)",
+      "Bash(jar tf:*)",
+      "Bash(test:*)"
     ]
   }
 }
