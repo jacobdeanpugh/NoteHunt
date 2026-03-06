@@ -22,6 +22,6 @@ describe('Card Component', () => {
     )
 
     const cardElement = container.querySelector('[data-testid="card"]')
-    expect(cardElement).toHaveClass('bg-bg-surface', 'border-border-default')
+    expect(cardElement).toHaveClass('bg-surface', 'border-dark')
   })
 })

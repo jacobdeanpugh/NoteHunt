@@ -53,14 +53,14 @@ export default function SettingsScreen() {
 
       {/* Directory Settings Section */}
       <div className="mb-8">
-        <h2 className="text-xs uppercase text-text-muted font-medium tracking-wide border-b border-border-default pb-2 mb-6">
+        <h2 className="text-xs uppercase text-muted font-medium tracking-wide border-b border-dark pb-2 mb-6">
           Directory Settings
         </h2>
 
         <div className="space-y-6">
           {/* Directory Path */}
           <div>
-            <label className="block text-sm text-text-body mb-2">
+            <label className="block text-sm text-body mb-2">
               Directory Path
             </label>
             <Input
@@ -73,7 +73,7 @@ export default function SettingsScreen() {
 
           {/* Index Path */}
           <div>
-            <label className="block text-sm text-text-body mb-2">
+            <label className="block text-sm text-body mb-2">
               Index Path
             </label>
             <Input
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
 
       {/* File Extensions Section */}
       <div className="mb-8">
-        <h2 className="text-xs uppercase text-text-muted font-medium tracking-wide border-b border-border-default pb-2 mb-6">
+        <h2 className="text-xs uppercase text-muted font-medium tracking-wide border-b border-dark pb-2 mb-6">
           File Extensions
         </h2>
 
@@ -100,9 +100,9 @@ export default function SettingsScreen() {
                 type="checkbox"
                 checked={checked}
                 onChange={() => handleExtensionChange(ext)}
-                className="w-4 h-4 bg-bg-surface border border-border-default rounded cursor-pointer"
+                className="w-4 h-4 bg-surface border border-dark rounded cursor-pointer"
               />
-              <span className="font-mono text-sm text-text-body">.{ext}</span>
+              <span className="font-mono text-sm text-body">.{ext}</span>
             </label>
           ))}
         </div>
@@ -110,12 +110,12 @@ export default function SettingsScreen() {
 
       {/* Indexing Section */}
       <div className="mb-8">
-        <h2 className="text-xs uppercase text-text-muted font-medium tracking-wide border-b border-border-default pb-2 mb-6">
+        <h2 className="text-xs uppercase text-muted font-medium tracking-wide border-b border-dark pb-2 mb-6">
           Indexing
         </h2>
 
         <div>
-          <label className="block text-sm text-text-body mb-2">
+          <label className="block text-sm text-body mb-2">
             Batch Size (files per batch)
           </label>
           <Input
@@ -148,7 +148,7 @@ export default function SettingsScreen() {
       </div>
 
       {/* Note */}
-      <p className="text-xs text-text-muted mt-6 italic">
+      <p className="text-xs text-muted mt-6 italic">
         Note: Settings are read-only in this version. Write functionality will
         be added in Phase 5.
       </p>

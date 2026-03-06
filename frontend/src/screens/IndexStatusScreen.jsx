@@ -64,12 +64,12 @@ export default function IndexStatusScreen() {
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <Card label="Pending">
-          <div className="text-2xl font-medium text-text-light">
+          <div className="text-2xl font-medium text-light">
             {indexStatus?.pendingFiles || 0}
           </div>
         </Card>
         <Card label="In Progress">
-          <div className="text-2xl font-medium text-text-light">
+          <div className="text-2xl font-medium text-light">
             {indexStatus?.inProgressFiles || 0}
           </div>
         </Card>
@@ -78,14 +78,14 @@ export default function IndexStatusScreen() {
             className={`text-2xl font-medium ${
               (indexStatus?.errorFiles || 0) > 0
                 ? 'text-status-error'
-                : 'text-text-muted'
+                : 'text-muted'
             }`}
           >
             {indexStatus?.errorFiles || 0}
           </div>
         </Card>
         <Card label="Last Synced">
-          <div className="text-sm text-text-body">
+          <div className="text-sm text-body">
             {indexStatus?.lastSyncTime
               ? new Date(indexStatus.lastSyncTime).toLocaleTimeString()
               : 'Never'}
@@ -95,7 +95,7 @@ export default function IndexStatusScreen() {
 
       {/* Re-index link */}
       <div className="text-right mb-4">
-        <button className="text-sm text-text-muted hover:text-text-body transition-colors">
+        <button className="text-sm text-muted hover:text-body transition-colors">
           Re-index all
         </button>
       </div>
@@ -107,7 +107,7 @@ export default function IndexStatusScreen() {
         </div>
       )}
 
-      <h2 className="text-xs uppercase text-text-muted font-medium tracking-wide mb-4">
+      <h2 className="text-xs uppercase text-muted font-medium tracking-wide mb-4">
         File List
       </h2>
       <FileTable files={paginatedFiles} loading={loading} />

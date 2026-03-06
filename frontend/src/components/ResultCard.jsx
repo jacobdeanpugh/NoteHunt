@@ -27,17 +27,17 @@ export default function ResultCard({
   }
 
   return (
-    <div className="bg-bg-surface border border-border-default rounded p-6 mb-4">
+    <div className="bg-surface border border-dark rounded p-6 mb-4">
       {/* Header: Path + Score */}
       <div className="flex justify-between items-start mb-2">
-        <p className="font-mono text-sm text-text-body break-all">{filePath}</p>
-        <span className="text-xs text-text-muted whitespace-nowrap ml-4">
+        <p className="font-mono text-sm text-body break-all">{filePath}</p>
+        <span className="text-xs text-muted whitespace-nowrap ml-4">
           Score: {(score * 100).toFixed(0)}%
         </span>
       </div>
 
       {/* Metadata: Modified, Size, Tags */}
-      <div className="text-xs text-text-muted mb-3 flex gap-4 flex-wrap">
+      <div className="text-xs text-muted mb-3 flex gap-4 flex-wrap">
         <span>Modified: {formatTime(lastModified)}</span>
         <span>•</span>
         <span>{formatSize(fileSize)}</span>
@@ -50,7 +50,7 @@ export default function ResultCard({
       </div>
 
       {/* Snippet */}
-      <p className="text-sm text-text-body line-clamp-2 italic">
+      <p className="text-sm text-body line-clamp-2 italic">
         ...{snippet}...
       </p>
     </div>

@@ -16,12 +16,12 @@ export default function Pagination({
   }
 
   return (
-    <div className="flex justify-center items-center gap-4 text-sm text-text-muted">
+    <div className="flex justify-center items-center gap-4 text-sm text-muted">
       <button
         onClick={handlePrev}
         disabled={currentPage === 1}
         aria-label="Go to previous page"
-        className="hover:text-text-body disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="hover:text-body disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         ← Prev
       </button>
@@ -34,7 +34,7 @@ export default function Pagination({
         onClick={handleNext}
         disabled={currentPage === totalPages}
         aria-label="Go to next page"
-        className="hover:text-text-body disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="hover:text-body disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         Next →
       </button>

@@ -7,8 +7,8 @@ export default function Button({
 }) {
   const variants = {
     primary: 'bg-text-light text-bg-primary hover:opacity-90',
-    secondary: 'bg-bg-surface border border-border-default text-text-body hover:bg-border-default',
-    text: 'text-text-muted hover:text-text-body',
+    secondary: 'bg-surface border border-dark text-body hover:bg-surface',
+    text: 'text-muted hover:text-body',
   }
 
   return (

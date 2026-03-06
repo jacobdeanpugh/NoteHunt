@@ -13,7 +13,7 @@ export default function SummaryCards({
         {[...Array(4)].map((_, i) => (
           <div
             key={i}
-            className="bg-bg-surface border border-border-default rounded p-6 h-32 animate-pulse"
+            className="bg-surface border border-dark rounded p-6 h-32 animate-pulse"
           />
         ))}
       </div>
@@ -37,7 +37,7 @@ export default function SummaryCards({
           <div className="font-light text-lg">
             <span className="font-medium">{total.toLocaleString()}</span> files indexed
           </div>
-          <div className="text-xs text-text-muted">
+          <div className="text-xs text-muted">
             {complete} complete · {pending} pending · {error} errors
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function SummaryCards({
 
       {/* Top Tags */}
       <Card label="Top Tags" cta="See more">
-        <div className="text-sm text-text-body">
+        <div className="text-sm text-body">
           {topTags.length > 0
             ? topTags.slice(0, 3).join(' · ')
             : 'No tags yet'}
