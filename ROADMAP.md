@@ -13,150 +13,146 @@ This document outlines the work needed to complete NoteHunt from current state t
 - ✅ Configuration management
 
 **What's Missing:**
-- ❌ HTTP/REST API
-- ❌ Query interface to Lucene index
-- ❌ Result ranking and pagination
-- ❌ Snippet extraction
-- ❌ Metadata/tag support
+- ❌ Web dashboard UI
 - ❌ Error recovery
 - ❌ Performance optimization
 
 ---
 
-## Phase 1: Search API Foundation (High Priority)
+## Phase 1: Search API Foundation (High Priority) — ✅ COMPLETED
+
+**Status:** Implemented. REST endpoints for search, query processing, and results handler.
 
 ### 1.1 Implement REST Controller
-**Status:** Not started
-**Dependencies:** None
-**Time Estimate:** 3-5 days
+**Status:** ✅ Complete
+Expose search endpoints via REST framework.
 
-Create a Spring Boot or similar REST framework integration to expose search endpoints.
-
-**Required Endpoints:**
+**Endpoints:**
 - `GET /search?q=<query>` - Basic text search
 - `GET /search?q=<query>&limit=10&offset=0` - Pagination support
 - `GET /health` - Service health check
 - `GET /index/status` - Indexing progress/stats
 
-**Deliverables:**
-- [ ] Add REST framework to pom.xml (Spring Boot, Spark, or similar)
-- [ ] Create SearchController class
-- [ ] Implement `/search` endpoint with basic query parameter handling
-- [ ] Add request validation and error responses
-- [ ] Integrate with existing FileIndexer
-- [ ] Write integration tests for endpoints
-
-**Notes:**
-- Consider lightweight frameworks (Spark, Ktor) given "modest hardware" requirement
-- May need to refactor App.java to run HTTP server alongside file watcher
-
 ---
 
 ### 1.2 Query Processing Engine
-**Status:** Not started
-**Dependencies:** 1.1
-**Time Estimate:** 2-3 days
+**Status:** ✅ Complete
+Convert user queries into Lucene QueryParser queries.
 
-Build logic to convert user queries into Lucene QueryParser queries.
-
-**Required Features:**
-- Parse simple text queries ("hello world")
+**Features:**
+- Parse simple text queries
 - Support boolean operators (AND, OR, NOT)
-- Quote phrases ("exact phrase search")
-- Basic field targeting (title:, content:, etc.)
-- Query validation and sanitization (prevent injection)
-
-**Deliverables:**
-- [ ] Create QueryParser utility class
-- [ ] Implement queryString → Lucene Query conversion
-- [ ] Add query validation
-- [ ] Handle edge cases (empty queries, special characters)
-- [ ] Write unit tests (10+ test cases)
-
-**Notes:**
-- Lucene has built-in QueryParser; wrap it for app-specific needs
-- Should sanitize user input before passing to Lucene
+- Quote phrases
+- Field targeting (title:, content:, etc.)
+- Query validation and sanitization
 
 ---
 
 ### 1.3 Search Results Handler
-**Status:** Not started
-**Dependencies:** 1.2
-**Time Estimate:** 3-4 days
-
+**Status:** ✅ Complete
 Execute queries, return formatted results with metadata.
 
-**Required Features:**
+**Features:**
 - Execute Lucene Query on IndexSearcher
 - Return top N results (paginated)
 - Include relevance score
 - Include file path and metadata
 - Support sorting (by relevance, date, filename)
 
-**Deliverables:**
-- [ ] Create SearchResult DTO (includes score, path, snippet preview, etc.)
-- [ ] Implement query execution in FileIndexer
-- [ ] Add pagination support (limit, offset/cursor)
-- [ ] Add sorting strategies
-- [ ] Write integration tests (search for actual indexed content)
-
 ---
 
-## Phase 2: Result Enhancement (Medium Priority)
+## Phase 2: Result Enhancement (Medium Priority) — ✅ COMPLETED
 
 ### 2.1 Snippet/Context Extraction
-**Status:** Not started
-**Dependencies:** 1.3
-**Time Estimate:** 3-5 days
-
+**Status:** ✅ Complete
 Extract relevant text excerpts showing matched terms in context.
 
-**Required Features:**
+**Features:**
 - Highlight matched query terms in result text
-- Extract surrounding context (e.g., 50 chars before/after match)
+- Extract surrounding context
 - Handle multiple matches per file
 - Truncate long snippets gracefully
-
-**Deliverables:**
-- [ ] Create SnippetGenerator utility
-- [ ] Implement term highlighting (wrapping matches in tags)
-- [ ] Extract context windows around matches
-- [ ] Handle edge cases (start of file, special characters, encoding)
-- [ ] Add to SearchResult DTO
-- [ ] Write unit tests
-
-**Notes:**
-- Lucene Highlighter library can assist but may be overkill
-- Consider storing snippet in database for faster retrieval (cache)
 
 ---
 
 ### 2.2 Result Ranking & Relevance
-**Status:** Not started
-**Dependencies:** 1.3
-**Time Estimate:** 2-3 days
-
+**Status:** ✅ Complete
 Improve result ranking beyond basic Lucene scoring.
 
-**Potential Strategies:**
-- **Boost file modification recency** - Recently edited files ranked higher
-- **Boost file size/richness** - Longer, more detailed files weighted higher
-- **Personalization** - Future: track user clicks, boost clicked results
-- **Metadata weighting** - Boost matches in title vs content
-
-**Deliverables:**
-- [ ] Study Lucene similarity/scoring
-- [ ] Implement custom Similarity or Query wrapper
-- [ ] Add database field for file importance/boost
-- [ ] Integrate custom scoring into search results
-- [ ] A/B test relevance improvements
-- [ ] Write ranking tests
+**Strategies:**
+- Boost file modification recency
+- Boost file size/richness
+- Metadata weighting
 
 ---
 
-## Phase 3: Content Metadata & Filtering (Medium Priority)
+## Phase 3: Web Dashboard UI (High Priority)
 
-### 3.1 Metadata Extraction
+### 3.1 React SPA Frontend
+**Status:** Not started
+**Dependencies:** Phase 1, Phase 2
+**Time Estimate:** 4-6 days
+
+Build a modern, minimal web dashboard following Acme-inspired design (warm dark, editorial aesthetic, no gradients/glow/shadows).
+
+**Design Principles:**
+- Background: #0e0e0e (warm near-black)
+- Surface: #141414 with #1e1e1e borders
+- Typography: Geist/Inter with bold/light weight mixing
+- Sidebar: Icon-only (~48px), no labels
+- Flat design: depth via typography weight, not shadows
+
+**Required Features:**
+
+**Screen 1: Search (Home)**
+- Greeting with system username: "Good morning, [Name]"
+- 4 summary cards: Recent Files, Index Status, Top Tags, Last Search
+- Conversational search input with prompt starters
+- Search results grid: file path, relevance score, snippet, tags, modification date
+- Pagination support (20 results per page)
+
+**Screen 2: Index Status**
+- 4 stat cards: Pending count, In Progress count, Error count, Last synced
+- Paginated file table (monospace paths, status as plain text)
+- Re-index button (text link, not styled button)
+
+**Screen 3: Settings**
+- Configuration form: directory path, index path, batch size
+- File extension toggles (.txt, .md, .rst, .org)
+- Save button (only light element: #f5f5f5 bg, #0e0e0e text)
+
+**Deliverables:**
+- [ ] Set up React 18 + Vite project
+- [ ] Create Tailwind CSS config with Acme color palette
+- [ ] Implement Sidebar + TopBar components (shared across screens)
+- [ ] Build Screen 1: Search with results display
+- [ ] Build Screen 2: Index Status with file table
+- [ ] Build Screen 3: Settings (read-only initially, writeable in Phase 5)
+- [ ] Integrate with Phase 1 `/search` endpoint
+- [ ] Integrate with Phase 1 `/index/status` endpoint
+- [ ] Integrate with Phase 2 snippet and ranking data
+- [ ] Add pagination for search results and file table
+- [ ] Add error handling (API failures, empty results)
+- [ ] Write component tests for critical UI logic
+- [ ] Document dev setup and build process
+
+**API Integration Points:**
+- `GET /search?q=<query>&limit=20&offset=0` — Search results with snippets (Phase 1.3 + 2.1)
+- `GET /index/status` — Index statistics (Phase 1.1)
+- Results include: relevance score (Phase 2.2), snippets (Phase 2.1), tags (Phase 4.1 metadata when available)
+
+**Styling Notes:**
+- No box shadows, no rounded corners > 6px
+- Card borders: 1px solid #1e1e1e
+- Active sidebar icon: faint #1e1e1e pill background, no color accent
+- File status colors: muted for Complete, yellow for Pending, red for Error
+- Monospace for file paths (Geist Mono, 12px)
+
+---
+
+## Phase 4: Content Metadata & Filtering (Medium Priority)
+
+### 4.1 Metadata Extraction
 **Status:** Not started
 **Dependencies:** None (parallel to Phase 1)
 **Time Estimate:** 4-6 days
@@ -197,9 +193,9 @@ ALTER TABLE file_states ADD COLUMN created_date DATETIME;
 
 ---
 
-### 3.2 Tag/Category Filtering
+### 4.2 Tag/Category Filtering
 **Status:** Not started
-**Dependencies:** 3.1
+**Dependencies:** 4.1
 **Time Estimate:** 2-3 days
 
 Allow users to filter search results by tags.
@@ -218,9 +214,9 @@ Allow users to filter search results by tags.
 
 ---
 
-## Phase 4: Infrastructure & Polish (Lower Priority)
+## Phase 5: Infrastructure & Polish (Lower Priority)
 
-### 4.1 Error Handling & Recovery
+### 5.1 Error Handling & Recovery
 **Status:** Partially implemented (basic try-catch)
 **Dependencies:** None
 **Time Estimate:** 4-5 days
@@ -234,7 +230,6 @@ Improve resilience and graceful degradation.
 - **Disk Full** - Pause indexing, alert user
 - **Interrupted Indexing** - Resume from last successful state
 - **Bad Files** - Skip files that cause parsing errors
-- **Network Issues** (future)
 
 **Deliverables:**
 - [ ] Add index validation on startup
@@ -246,7 +241,7 @@ Improve resilience and graceful degradation.
 
 ---
 
-### 4.2 Performance Optimization
+### 5.2 Performance Optimization
 **Status:** Not analyzed
 **Dependencies:** 1.3 (need baseline first)
 **Time Estimate:** 3-5 days
@@ -276,8 +271,8 @@ Optimize for "modest hardware" (4-8 GB RAM).
 
 ---
 
-### 4.3 Testing & Quality
-**Status:** Minimal (only 2 test classes)
+### 5.3 Testing & Quality
+**Status:** 52/52 tests passing
 **Dependencies:** All other features
 **Time Estimate:** 5-7 days
 
@@ -299,7 +294,7 @@ Expand test coverage and add integration tests.
 
 ---
 
-### 4.4 Configuration & Deployment
+### 5.4 Configuration & Deployment
 **Status:** Basic JSON config only
 **Dependencies:** None
 **Time Estimate:** 2-3 days
@@ -317,9 +312,9 @@ Make app easier to deploy and configure.
 
 ---
 
-### 4.5 Logging & Monitoring
+### 5.5 Logging & Monitoring
 **Status:** System.out/err only
-**Dependencies:** 4.1
+**Dependencies:** 5.1
 **Time Estimate:** 2-3 days
 
 Add structured logging and basic metrics.
@@ -334,28 +329,28 @@ Add structured logging and basic metrics.
 
 ---
 
-## Phase 5: Advanced Features (Nice-to-Have)
+## Phase 6: Advanced Features (Nice-to-Have)
 
-### 5.1 Advanced Query Features
+### 6.1 Advanced Query Features
 - Fuzzy matching (approximate string matching)
 - Wildcard queries (`java*`, `?ython`)
 - Range queries (date ranges)
 - Proximity search (terms within N words)
 - Faceted search (drill-down by tag/category)
 
-### 5.2 Content Processing
+### 6.2 Content Processing
 - Support more file types (PDF, DOCX extraction)
 - Markdown-specific parsing (frontmatter, headings)
 - Code syntax highlighting in snippets
 - Support for PDF embedded metadata
 
-### 5.3 User Features
+### 6.3 User Features
 - Search history/bookmarks
 - Saved searches
 - Custom ranking profiles
 - Full-text indexing of linked files (transclusion)
 
-### 5.4 Scaling
+### 6.4 Scaling
 - Distributed indexing (shard by document hash)
 - Incremental exports for backup
 - Replication support
@@ -375,16 +370,19 @@ Phase 2: Enhancement
 ├─ 2.1 Snippets (depends: 1.3)
 ├─ 2.2 Ranking (depends: 1.3)
 │
-Phase 3: Metadata (parallel)
-├─ 3.1 Metadata Extraction
-├─ 3.2 Tag Filtering (depends: 3.1)
+Phase 3: Web Dashboard (depends: Phase 1, 2)
+├─ 3.1 React SPA Frontend
 │
-Phase 4: Polish
-├─ 4.1 Error Handling
-├─ 4.2 Performance (depends: 1.3)
-├─ 4.3 Testing (depends: all features)
-├─ 4.4 Config
-├─ 4.5 Logging (depends: 4.1)
+Phase 4: Metadata (parallel)
+├─ 4.1 Metadata Extraction
+├─ 4.2 Tag Filtering (depends: 4.1)
+│
+Phase 5: Polish
+├─ 5.1 Error Handling
+├─ 5.2 Performance (depends: 1.3)
+├─ 5.3 Testing (depends: all features)
+├─ 5.4 Config
+├─ 5.5 Logging (depends: 5.1)
 ```
 
 ---
@@ -392,40 +390,38 @@ Phase 4: Polish
 ## Priority Recommendations
 
 **For MVP (Minimum Viable Product):**
-1. Phase 1: REST API + Query Processing (1-2 weeks)
-2. Phase 1.3: Search Results (3-4 days)
-3. Phase 4.1: Basic error handling
+1. Phase 1: REST API + Query Processing (1-2 weeks) ✅
+2. Phase 2: Snippets + Ranking (1 week) ✅
+3. Phase 3: Web Dashboard UI (4-6 days) — NEXT
 
 **For Beta (Usable Product):**
-- Phase 2: Snippets + Ranking (1 week)
-- Phase 3: Metadata + Tags (1 week)
-- Phase 4.3: Testing & QA (1 week)
+- Phase 4: Metadata + Tags (1 week)
+- Phase 5.1: Error handling
+- Phase 5.3: Testing & QA (1 week)
 
 **For 1.0 (Polish):**
-- Phase 4: All infrastructure
-- Phase 5: Nice-to-have advanced features
+- Phase 5: All infrastructure
+- Phase 6: Nice-to-have advanced features
 
 ---
 
 ## Known Technical Debt
 
-1. **App.java is commented out** - FileWatcherService not running; only indexing from database
+1. **App.java FileWatcherService commented out** - Disabled due to concurrency issues
 2. **No transaction handling** - Concurrent file operations may race
 3. **Hardcoded file extensions** - `.txt` only, not configurable
 4. **No input validation** - User queries could break parser
 5. **Missing nullability checks** - Potential NPE in event handlers
-6. **Typos in comments** - "databse" instead of "database"
-7. **No connection pooling** - Single H2 connection, not thread-safe
-8. **Status checking logic** - Some queries check against wrong status values
+6. **No connection pooling** - Single H2 connection, not thread-safe
+
+---
 
 ## Quick Wins (Low Effort, High Value)
 
 1. Fix typos and improve code comments (30 min)
 2. Add proper logging instead of System.out (2-3 hours)
-3. Implement basic `/health` endpoint (1 hour)
-4. Add Maven shade plugin output to .gitignore (10 min)
-5. Create Docker image (2-3 hours)
-6. Write ARCHITECTURE.md explaining component interactions (2 hours)
+3. Add Maven shade plugin output to .gitignore (10 min)
+4. Create Docker image (2-3 hours)
 
 ---
 
@@ -440,5 +436,5 @@ Phase 4: Polish
 
 ---
 
-**Last Updated:** 2024-01
-**Version:** 1.0
+**Last Updated:** 2026-03-05
+**Version:** 2.0
