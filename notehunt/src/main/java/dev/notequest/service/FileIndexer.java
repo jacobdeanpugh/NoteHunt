@@ -63,11 +63,15 @@ public class FileIndexer implements AutoCloseable {
 
     public void indexFile(Path filePath) throws IOException {
         Document doc = new Document();
-
         doc.add(new StringField("path", filePath.toString(), Field.Store.YES));
 
         String content = Files.readString(filePath);
-        doc.add(new TextField("contents", content, Field.Store.NO));
+        doc.add(new TextField("contents", content, Field.Store.YES));  // Store.YES for snippets
+
+        doc.add(new StoredField("fileSize", Long.toString(Files.size(filePath))));
+        doc.add(new StoredField("lastModified", Long.toString(
+            Files.getLastModifiedTime(filePath).toMillis()
+        )));
 
         writer.addDocument(doc);
     }
