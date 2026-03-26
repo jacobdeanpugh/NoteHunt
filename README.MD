@@ -7,11 +7,11 @@ A personal knowledge-base search service that monitors your note directories and
 NoteHunt is a backend service designed for students, researchers, and writers who want powerful full-text search over their personal note collection. Drop a folder of Markdown, plain text, or other documents into a monitored directory, and instantly search with ranking, filtering, and snippet extraction—all running locally on embedded databases.
 
 **Key Features:**
-- 📁 **Automatic File Monitoring** - Detects file creation, modification, and deletion
-- 🔍 **Full-Text Search** - Apache Lucene-based indexing and querying
-- 💾 **Persistent State** - H2 embedded database tracks file states and metadata
-- ⚡ **Efficient Sync** - Batch processing with incremental updates
-- 🎯 **Lightweight** - Designed for modest hardware (4-8 GB RAM)
+-  **Automatic File Monitoring** - Detects file creation, modification, and deletion
+-  **Full-Text Search** - Apache Lucene-based indexing and querying
+-  **Persistent State** - H2 embedded database tracks file states and metadata
+-  **Efficient Sync** - Batch processing with incremental updates
+-  **Lightweight** - Designed for modest hardware (4-8 GB RAM)
 
 ## Project Status
 
